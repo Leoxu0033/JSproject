@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Mini Flat Heroes — Demo</title>
+    <link rel="stylesheet" href="styles.css" />
+    <!-- Howler is optional; we use Web Audio in src/audio.js but keep Howler CDN if you prefer it -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.3/howler.min.js"></script>
+  </head>
+  <body>
+    <div id="wrapper">
+      <canvas id="gameCanvas" width="900" height="600"></canvas>
+      <div id="hud">
+        <div id="score">Score: 0</div>
+        <div id="lives">Lives: 3</div>
+        <div id="mute">Sound: On (M)</div>
+        <div id="instructions">WASD / Arrow keys to move — Space to jump — R to restart</div>
+      </div>
+        
+        <!-- overlay for game over with retry button -->
+        <div id="overlay" class="overlay" style="display:none;">
+          <div class="overlay-card">
+            <h2 id="overlay-title">Game Over</h2>
+            <p id="overlay-sub">Try again?</p>
+            <div class="overlay-actions">
+              <button id="retry-btn">Retry</button>
+            </div>
+          </div>
+        </div>
+    </div>
+
+    <script type="module" src="src/main.js"></script>
+  </body>
+</html>
