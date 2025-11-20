@@ -359,22 +359,63 @@ export class Enemy {
 
   draw(ctx) {
     ctx.save();
-    // color by type
+    // stylized drawing
     if (this.type === 'tadpole') {
-      ctx.fillStyle = '#00e0ff';
+      // glossy oval body with subtle inner glow
+      const cx = this.pos.x + this.w / 2;
+      const cy = this.pos.y + this.h / 2;
+      const rx = this.w / 2;
+      const ry = this.h / 2;
+      // drop shadow
+      ctx.fillStyle = 'rgba(0,0,0,0.22)';
+      ctx.beginPath(); ctx.ellipse(cx + 3, cy + ry + 4, rx * 0.9, 6, 0, 0, Math.PI*2); ctx.fill();
+      // body gradient
+      const g = ctx.createLinearGradient(cx - rx, cy - ry, cx + rx, cy + ry);
+      g.addColorStop(0, '#00e0ff');
+      g.addColorStop(1, '#0097b2');
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI*2); ctx.fill();
+      // gloss
+      ctx.fillStyle = 'rgba(255,255,255,0.14)';
+      ctx.beginPath(); ctx.ellipse(cx - rx*0.4, cy - ry*0.5, rx*0.6, ry*0.45, 0, 0, Math.PI*2); ctx.fill();
+      // tiny eye
+      ctx.fillStyle = 'rgba(0,0,0,0.9)'; ctx.beginPath(); ctx.arc(cx + rx*0.15, cy - ry*0.05, Math.max(1.6, rx*0.12), 0, Math.PI*2); ctx.fill();
+      // tail stroke (motion smear)
+      ctx.strokeStyle = 'rgba(0,224,255,0.4)'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(cx - rx*0.2, cy); ctx.lineTo(cx - rx*0.2 - this.vel.x*0.04, cy - this.vel.y*0.04); ctx.stroke();
+    } else {
+      // panel-ish enemy (rounded rect with emblem)
+      const x = this.pos.x, y = this.pos.y, w = this.w, h = this.h, r = Math.min(8, Math.floor(Math.min(w,h)*0.25));
+      // gradient based on type
+      let c1 = '#ff6b6b', c2 = '#ff4d4d';
+      if (this.type === 'chaser') { c1 = '#ffb085'; c2 = '#ff8a65'; }
+      else if (this.type === 'jumper') { c1 = '#ffe797'; c2 = '#ffd166'; }
+      const grad = ctx.createLinearGradient(x, y, x, y + h);
+      grad.addColorStop(0, c1); grad.addColorStop(1, c2);
+      // shadow
+      ctx.fillStyle = 'rgba(0,0,0,0.2)'; ctx.beginPath();
+      ctx.rect(x+3, y + h + 4, w - 6, 6); ctx.fill();
+      // body
+      ctx.fillStyle = grad;
+      // rounded rect path
       ctx.beginPath();
-      ctx.ellipse(this.pos.x + this.w/2, this.pos.y + this.h/2, this.w/2, this.h/2, 0, 0, Math.PI*2);
-      ctx.fill();
-      // draw a little "tail"
-      ctx.strokeStyle = 'rgba(0,224,255,0.5)';
-      ctx.beginPath();
-      ctx.moveTo(this.pos.x + this.w/2, this.pos.y + this.h/2);
-      ctx.lineTo(this.pos.x + this.w/2 - this.vel.x*0.06, this.pos.y + this.h/2 - this.vel.y*0.06);
-      ctx.stroke();
-    } else if (this.type === 'chaser') ctx.fillStyle = '#ff8a65';
-    else if (this.type === 'jumper') ctx.fillStyle = '#ffd166';
-    else ctx.fillStyle = '#ff4d4d';
-    if (this.type !== 'tadpole') ctx.fillRect(this.pos.x, this.pos.y, this.w, this.h);
+      ctx.moveTo(x + r, y);
+      ctx.lineTo(x + w - r, y);
+      ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+      ctx.lineTo(x + w, y + h - r);
+      ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+      ctx.lineTo(x + r, y + h);
+      ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+      ctx.lineTo(x, y + r);
+      ctx.quadraticCurveTo(x, y, x + r, y);
+      ctx.closePath(); ctx.fill();
+      // emblem / eye
+      ctx.fillStyle = 'rgba(0,0,0,0.12)';
+      ctx.beginPath(); ctx.arc(x + w/2, y + h/2 - 2, Math.max(3, w*0.12), 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,0.12)'; ctx.beginPath(); ctx.arc(x + w/2 + 2, y + h/2 - 4, 2, 0, Math.PI*2); ctx.fill();
+      // outline
+      ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(0,0,0,0.18)'; ctx.stroke();
+    }
     ctx.restore();
   }
 }

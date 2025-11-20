@@ -13,20 +13,75 @@
     <div id="wrapper">
       
       <canvas id="gameCanvas" width="900" height="600"></canvas>
-<div id="hud">
-        <div id="level">Level 1: Tutorial Arena</div>
-        <div id="timer">Time: 20.0s</div>
-        <div id="score">Score: 0</div>
-        <div id="level-score">Level Score: 0</div>
-        <div id="lives">Lives: 3</div>
-        
+      <!-- High-end main menu (hero style) -->
+      <div id="mainMenu" class="menu" role="dialog" aria-modal="true" aria-label="Main menu">
+        <div class="menu-bg" aria-hidden="true"></div>
+        <div class="menu-card" role="region">
+          <div class="menu-left">
+            <h1 class="menu-title">Mini Flat Heroes</h1>
+            <p class="menu-tag">A stylish demo — survive, score, repeat.</p>
 
+            <div class="menu-actions" role="tablist" aria-label="Main actions">
+              <button id="start-btn" class="glass-btn" aria-label="Start game">Start</button>
+              <button id="levelselect-btn" class="glass-btn" aria-label="Level select">Level Select</button>
+              <button id="showcase-btn" class="glass-btn" aria-label="Showcase demo">Showcase</button>
+            </div>
+
+            <div class="menu-foot">Use <strong>WASD</strong> or <strong>Arrow keys</strong>. Press <strong>M</strong> to mute.</div>
+          </div>
+
+          <div class="menu-right" aria-hidden="true">
+            <!-- Decorative SVG characters: person, dog, car -->
+            <div class="illustration person">
+              <!-- simple person SVG -->
+              <svg viewBox="0 0 64 64" width="140" height="140" aria-hidden="true">
+                <circle cx="32" cy="14" r="8" fill="#ffd166" />
+                <rect x="20" y="26" width="24" height="28" rx="5" fill="#06d6a0" />
+                <rect x="24" y="46" width="6" height="12" fill="#118ab2" />
+                <rect x="34" y="46" width="6" height="12" fill="#118ab2" />
+              </svg>
+            </div>
+            <div class="illustration dog">
+              <!-- simple dog SVG -->
+              <svg viewBox="0 0 64 64" width="110" height="110" aria-hidden="true">
+                <rect x="6" y="28" width="40" height="18" rx="6" fill="#ffb4a2" />
+                <circle cx="48" cy="30" r="6" fill="#ef476f" />
+                <rect x="14" y="44" width="4" height="10" fill="#6b6b6b" />
+                <rect x="30" y="44" width="4" height="10" fill="#6b6b6b" />
+              </svg>
+            </div>
+            <div class="illustration car">
+              <!-- simple car SVG -->
+              <svg viewBox="0 0 120 60" width="160" height="80" aria-hidden="true">
+                <rect x="4" y="18" width="112" height="28" rx="8" fill="#118ab2" />
+                <rect x="20" y="6" width="64" height="20" rx="6" fill="#06d6a0" />
+                <circle cx="28" cy="48" r="6" fill="#222" />
+                <circle cx="92" cy="48" r="6" fill="#222" />
+              </svg>
+            </div>
+          </div>
+        </div>
       </div>
-      <div id="ops">
+
+      <!-- HUD (modernized) -->
+      <div id="hud" class="hud-modern" role="status" aria-live="polite">
+        <div class="hud-item"><span class="hud-icon" aria-hidden="true">🏷️</span><div id="level">Level 1: Tutorial Arena</div></div>
+        <div class="hud-item"><span class="hud-icon" aria-hidden="true">⏱️</span><div id="timer">Time: 20.0s</div></div>
+        <div class="hud-item"><span class="hud-icon" aria-hidden="true">⭐</span><div id="score">Score: 0</div></div>
+        <div class="hud-item"><span class="hud-icon" aria-hidden="true">🎯</span><div id="level-score">Level Score: 0</div></div>
+        <div class="hud-item"><span class="hud-icon" aria-hidden="true">❤️</span><div id="lives">Lives: 3</div></div>
+      </div>
+
+      <div id="ops" class="ops-modern">
         <div id="instructions">WASD / Arrow keys to move — Space to jump — R to restart</div>
+         <div id="demo-indicator" class="demo-badge" style="display:none;">DEMO MODE</div>
         <div id="joinPrompt">Press a gamepad button to join as a player</div>
         <div id="pause">Press P to pause</div>
         <div id="mute">Sound: On (M)</div>
+        <!-- Back to main menu (used on Level Select) -->
+        <div style="margin-top:8px">
+          <button id="back-main-btn" class="glass-btn" aria-label="Return to main menu" style="display:none;">Back to Menu</button>
+        </div>
       </div>
         
         <!-- overlay for game over with retry button -->

@@ -515,21 +515,81 @@ export class Player {
       }
       ctx.globalAlpha = 1.0;
     }
-    // shadow
-    ctx.fillStyle = 'rgba(0,0,0,0.2)';
-    ctx.fillRect(this.pos.x + 4, this.pos.y + this.h + 4, this.w - 8, 6);
-    // flash while invulnerable
+    // soft drop shadow (rounded)
+    ctx.save();
+    ctx.fillStyle = 'rgba(0,0,0,0.22)';
+    ctx.beginPath();
+    const sx = this.pos.x + 4, sy = this.pos.y + this.h + 6, sw = this.w - 8, sh = 6;
+    const sr = 6;
+    ctx.moveTo(sx + sr, sy);
+    ctx.lineTo(sx + sw - sr, sy);
+    ctx.quadraticCurveTo(sx + sw, sy, sx + sw, sy + sr);
+    ctx.lineTo(sx + sw, sy + sh - sr);
+    ctx.quadraticCurveTo(sx + sw, sy + sh, sx + sw - sr, sy + sh);
+    ctx.lineTo(sx + sr, sy + sh);
+    ctx.quadraticCurveTo(sx, sy + sh, sx, sy + sh - sr);
+    ctx.lineTo(sx, sy + sr);
+    ctx.quadraticCurveTo(sx, sy, sx + sr, sy);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+
+    // flash while invulnerable (pulse)
     if (this.invulnerable) {
       const t = Math.floor(this.invulTimer * 20) % 2;
-      ctx.globalAlpha = t ? 0.35 : 1.0;
+      ctx.globalAlpha = t ? 0.42 : 1.0;
     }
-  ctx.translate(this.pos.x + this.w / 2, this.pos.y + this.h / 2);
-  ctx.scale(this.scaleX, this.scaleY);
-  ctx.fillStyle = this.color || '#ffffff';
-  ctx.fillRect(-this.w / 2, -this.h / 2, this.w, this.h);
+
+    // body: rounded rect with subtle gradient and outline
+    ctx.translate(this.pos.x + this.w / 2, this.pos.y + this.h / 2);
+    ctx.scale(this.scaleX, this.scaleY);
+    const bw = this.w, bh = this.h, br = 8;
+    // build gradient relative to body
+    const gx = ctx.createLinearGradient(-bw/2, -bh/2, -bw/2, bh/2);
+    const baseColor = this.color || '#ffffff';
+    // slightly tint the gradient based on base color
+    gx.addColorStop(0, hexToRgba(baseColor, 1));
+    gx.addColorStop(1, hexToRgba('#000000', 0.06));
+    ctx.fillStyle = gx;
+    // rounded rect path
+    ctx.beginPath();
+    ctx.moveTo(-bw/2 + br, -bh/2);
+    ctx.lineTo(bw/2 - br, -bh/2);
+    ctx.quadraticCurveTo(bw/2, -bh/2, bw/2, -bh/2 + br);
+    ctx.lineTo(bw/2, bh/2 - br);
+    ctx.quadraticCurveTo(bw/2, bh/2, bw/2 - br, bh/2);
+    ctx.lineTo(-bw/2 + br, bh/2);
+    ctx.quadraticCurveTo(-bw/2, bh/2, -bw/2, bh/2 - br);
+    ctx.lineTo(-bw/2, -bh/2 + br);
+    ctx.quadraticCurveTo(-bw/2, -bh/2, -bw/2 + br, -bh/2);
+    ctx.closePath();
+    ctx.fill();
+    // outline
+    ctx.lineWidth = 1.2;
+    ctx.strokeStyle = 'rgba(0,0,0,0.25)';
+    ctx.stroke();
+    // glossy highlight
+    ctx.beginPath();
+    ctx.moveTo(-bw/2 + br/2, -bh/2 + 2);
+    ctx.quadraticCurveTo(0, -bh/2 + 8, bw/2 - br/2, -bh/2 + 2);
+    ctx.lineTo(bw/2 - br/2, -bh/2 + 8);
+    ctx.quadraticCurveTo(0, -bh/2 + 14, -bw/2 + br/2, -bh/2 + 8);
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(255,255,255,0.08)';
+    ctx.fill();
+    // small eye to give character
+    ctx.fillStyle = '#111827';
+    ctx.beginPath();
+    ctx.arc(-6, -4, 2.4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(6, -4, 2.4, 0, Math.PI * 2);
+    ctx.fill();
     ctx.globalAlpha = 1.0;
     ctx.restore();
   }
+
+
 
   // trigger dash in a direction (-1 left, 1 right)
   tryDash(dir) {
@@ -559,4 +619,23 @@ export class Player {
       game.spawnParticles(this.pos.x + this.w / 2, this.pos.y + this.h / 2, '#ffffff', 10);
     }
   }
+}
+
+// helper: convert hex color to rgba string with alpha
+function hexToRgba(hex, a = 1) {
+  // accept #rrggbb or #rgb
+  const h = String(hex).replace('#','');
+  let r,g,b;
+  if (h.length === 3) {
+    r = parseInt(h[0]+h[0],16);
+    g = parseInt(h[1]+h[1],16);
+    b = parseInt(h[2]+h[2],16);
+  } else if (h.length === 6) {
+    r = parseInt(h.substring(0,2),16);
+    g = parseInt(h.substring(2,4),16);
+    b = parseInt(h.substring(4,6),16);
+  } else {
+    return hex;
+  }
+  return `rgba(${r},${g},${b},${a})`;
 }

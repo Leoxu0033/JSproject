@@ -6,6 +6,16 @@ A minimalist survival platformer game built with vanilla JavaScript, HTML5 Canva
 
 **Mini Flat Heroes** is a fast-paced survival platformer where you must survive for 20 seconds in each level while avoiding or defeating enemies. The game features progressive difficulty, dynamic safe havens, and a comprehensive scoring system.
 
+### Main menu modes
+
+The game provides three primary modes from the main menu:
+
+- Start — Begin playing immediately (starts Level 1). This is the normal play mode and persists high scores and completion data.
+- Level Select — Open the level selection screen; use the arrow keys or WASD to navigate, Enter to start the chosen level, and press the on-screen "Back" button or `Esc` to return to the main menu.
+- Showcase (Demo) — A non-persistent demo run that showcases gameplay without writing scores or progression to localStorage. Use this to try gameplay or for attract/demo loops.
+
+These controls are accessible from the top-level menu; see Controls below for keyboard/gamepad mappings.
+
 ### Key Features
 
 - **9 Unique Levels** - Each level has its own layout, obstacles, and enemy configurations

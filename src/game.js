@@ -1,5 +1,23 @@
 
 import { clamp, rectsIntersect } from './utils.js';
+
+// Helper: draw rounded rectangle path and optionally fill/stroke
+function roundRect(ctx, x, y, w, h, r = 6, doFill = true, doStroke = false) {
+  const radius = Math.max(0, Math.min(r, Math.min(w, h) / 2));
+  ctx.beginPath();
+  ctx.moveTo(x + radius, y);
+  ctx.lineTo(x + w - radius, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + radius);
+  ctx.lineTo(x + w, y + h - radius);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - radius, y + h);
+  ctx.lineTo(x + radius, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - radius);
+  ctx.lineTo(x, y + radius);
+  ctx.quadraticCurveTo(x, y, x + radius, y);
+  ctx.closePath();
+  if (doFill) ctx.fill();
+  if (doStroke) ctx.stroke();
+}
 import { input } from './input.js';
 import { Player } from './player.js';
 import { Enemy } from './enemy2.js';
@@ -86,6 +104,12 @@ export default class Game {
 
     this.audio = new AudioManager();
     this.audio.playMusic();
+  // When true, the game runs in a non-persistent demo mode (Showcase)
+  // Demo mode should avoid writing to localStorage (high scores/completed levels)
+  this.demoMode = false;
+    // Internal demo snapshot state (used to restore memory after demo)
+    this._inDemo = false;
+    this._demoSnapshot = null;
     // screen effects
     this.shakeTimer = 0;
     this.shakeDuration = 0;
@@ -97,6 +121,38 @@ export default class Game {
     this.gamepadPlayers = {};
     // player color palette
     this.playerColors = ['#ffffff', '#ffd166', '#06d6a0', '#ef476f', '#118ab2'];
+  }
+
+  // Demo mode helpers: snapshot/restore in-memory score state so demo runs are clean
+  enterDemoMode() {
+    if (this._inDemo) return;
+    this._inDemo = true;
+    this._demoSnapshot = {
+      highScores: this.highScores ? this.highScores.slice() : new Array(levels.length).fill(0),
+      completedLevels: this.completedLevels ? this.completedLevels.slice() : new Array(levels.length).fill(false),
+      totalScore: this.totalScore
+    };
+    // Use cloned arrays for demo so in-demo writes don't mutate original references
+    this.highScores = this._demoSnapshot.highScores.slice();
+    this.completedLevels = this._demoSnapshot.completedLevels.slice();
+    this.totalScore = this.calculateTotalScore();
+    this.demoMode = true;
+  }
+
+  exitDemoMode() {
+    if (!this._inDemo) return;
+    if (this._demoSnapshot) {
+      this.highScores = this._demoSnapshot.highScores;
+      this.completedLevels = this._demoSnapshot.completedLevels;
+      this.totalScore = this._demoSnapshot.totalScore;
+    } else {
+      this.highScores = this.loadHighScores();
+      this.completedLevels = this.loadCompletedLevels();
+      this.totalScore = this.calculateTotalScore();
+    }
+    this._demoSnapshot = null;
+    this._inDemo = false;
+    this.demoMode = false;
   }
 
   start() {
@@ -140,7 +196,10 @@ export default class Game {
     if (levelIndex >= 0 && levelIndex < levels.length) {
       this.completedLevels[levelIndex] = true;
       try {
-        localStorage.setItem('completedLevels', JSON.stringify(this.completedLevels));
+        // Only persist completed levels when not in demoMode
+        if (!this.demoMode) {
+          localStorage.setItem('completedLevels', JSON.stringify(this.completedLevels));
+        }
       } catch (e) {
         console.warn('Failed to save completed levels:', e);
       }
@@ -163,7 +222,10 @@ export default class Game {
       if (score > (this.highScores[levelIndex] || 0)) {
         this.highScores[levelIndex] = score;
         try {
-          localStorage.setItem('levelHighScores', JSON.stringify(this.highScores));
+          // Only persist high scores when not in demo mode
+          if (!this.demoMode) {
+            localStorage.setItem('levelHighScores', JSON.stringify(this.highScores));
+          }
         } catch (e) {
           console.warn('Failed to save high score:', e);
         }
@@ -314,6 +376,26 @@ export default class Game {
       } else {
         if (typeof y === 'number' && typeof h === 'number') this.objects.push({ type: 'wall', x, y, w, h });
       }
+    }
+
+    // Decorative spawn particles for level objects to give a polished spawn feel.
+    // Keep these lightweight so loading many objects won't create too many particles.
+    try {
+      for (const o of this.objects) {
+        if (!o) continue;
+        const cx = (o.x || 0) + (o.w || 12) / 2;
+        const cy = (o.y || 0) + (o.h || 12) / 2;
+        if (o.type === 'platform' || o.type === 'oneway') {
+          // soft blue halo for platforms
+          this.spawnParticles(cx, cy - 4, '#aee3ff', 6);
+        } else if (o.type === 'slope') {
+          this.spawnParticles(cx, cy, '#8fd3ff', 6);
+        }
+        // Walls spawn shouldn't be too flashy; skip for 'wall' to reduce noise
+      }
+    } catch (e) {
+      // Defensive: don't let particle visualizations break level loading
+      console.warn('Particle spawn during level load failed:', e);
     }
     
     // Add frame walls
@@ -914,16 +996,36 @@ export default class Game {
         ctx.fillStyle = `rgba(74, 222, 128, ${alpha})`;
       }
       
-      ctx.fillRect(haven.x, haven.y, haven.w, haven.h);
-      
-      // Draw border
+      // Draw stylized rounded safe-haven with soft glow
+      const r = Math.min(20, Math.floor(Math.min(haven.w, haven.h) * 0.12));
+      // drop shadow
+      ctx.save();
+      ctx.shadowColor = (playerInHaven ? 'rgba(74,222,128,0.55)' : 'rgba(0,0,0,0.6)');
+      ctx.shadowBlur = 22;
+      // background gradient
+      const g = ctx.createLinearGradient(haven.x, haven.y, haven.x, haven.y + haven.h);
       if (this.safeHavenDespawnTimer > 0) {
-        ctx.strokeStyle = `rgba(255, 107, 107, ${borderAlpha})`;
+        g.addColorStop(0, 'rgba(255,120,120,0.18)');
+        g.addColorStop(1, 'rgba(255,80,80,0.06)');
+      } else if (playerInHaven) {
+        g.addColorStop(0, 'rgba(120,255,180,0.26)');
+        g.addColorStop(1, 'rgba(60,200,120,0.08)');
       } else {
-        ctx.strokeStyle = playerInHaven ? 'rgba(74, 222, 128, 0.8)' : 'rgba(74, 222, 128, 0.4)';
+        g.addColorStop(0, 'rgba(80,220,160,0.14)');
+        g.addColorStop(1, 'rgba(60,180,130,0.04)');
       }
-      ctx.lineWidth = 2;
-      ctx.strokeRect(haven.x, haven.y, haven.w, haven.h);
+      roundRect(ctx, haven.x, haven.y, haven.w, haven.h, r, true, false);
+      ctx.fillStyle = g;
+      ctx.fill();
+      ctx.restore();
+
+      // inner border / glow
+      ctx.save();
+      ctx.lineWidth = 3;
+      if (this.safeHavenDespawnTimer > 0) ctx.strokeStyle = `rgba(255,107,107,${borderAlpha})`;
+      else ctx.strokeStyle = playerInHaven ? 'rgba(74,222,128,0.9)' : 'rgba(74,222,128,0.5)';
+      roundRect(ctx, haven.x + 2, haven.y + 2, haven.w - 4, haven.h - 4, Math.max(6, r - 6), false, true);
+      ctx.restore();
     }
 
     // draw entities
@@ -934,44 +1036,59 @@ export default class Game {
     if (this.objects && this.objects.length) {
       ctx.save();
       for (const o of this.objects) {
+        const x = o.x, y = o.y, w = o.w, h = o.h || 12;
+        const rr = Math.min(12, Math.floor(Math.min(w, h) * 0.15));
         if (o.type === 'wall') {
-          ctx.fillStyle = '#3a3a3a';
-          ctx.fillRect(o.x, o.y, o.w, o.h);
-        } else if (o.type === 'platform') {
-          ctx.fillStyle = '#7fb3ff';
-          const h = o.h || 8;
-          ctx.fillRect(o.x, o.y, o.w, h);
-          // small top highlight
-          ctx.fillStyle = 'rgba(255,255,255,0.08)';
-          ctx.fillRect(o.x, o.y, o.w, 2);
-        } else if (o.type === 'oneway') {
-          ctx.fillStyle = '#a0d2ff';
-          const h = o.h || 8;
-          ctx.fillRect(o.x, o.y, o.w, h);
-          ctx.strokeStyle = 'rgba(0,0,0,0.12)';
-          ctx.beginPath();
-          ctx.moveTo(o.x, o.y + h);
-          ctx.lineTo(o.x + o.w, o.y + h);
-          ctx.stroke();
+          // panel-style wall with subtle bevel and noise-like gradient
+          const g2 = ctx.createLinearGradient(x, y, x, y + h);
+          g2.addColorStop(0, '#2f3742');
+          g2.addColorStop(1, '#1f2630');
+          ctx.fillStyle = g2;
+          roundRect(ctx, x, y, w, h, rr, true, false);
+          // top highlight
+          ctx.fillStyle = 'rgba(255,255,255,0.03)';
+          roundRect(ctx, x + 2, y + 2, w - 4, Math.min(8, h / 2), 6, true, false);
+          // inner border
+          ctx.strokeStyle = 'rgba(255,255,255,0.02)';
+          ctx.lineWidth = 1;
+          roundRect(ctx, x + 1, y + 1, w - 2, h - 2, Math.max(4, rr - 2), false, true);
+        } else if (o.type === 'platform' || o.type === 'oneway') {
+          const g3 = ctx.createLinearGradient(x, y, x, y + h);
+          g3.addColorStop(0, '#4fa8ff');
+          g3.addColorStop(1, '#2b7fcf');
+          ctx.fillStyle = g3;
+          roundRect(ctx, x, y, w, h, rr, true, false);
+          // subtle top sheen
+          ctx.fillStyle = 'rgba(255,255,255,0.09)';
+          roundRect(ctx, x + 2, y + 1, w - 4, 2, 2, true, false);
+          // thin shadow under platform
+          ctx.fillStyle = 'rgba(0,0,0,0.28)';
+          ctx.fillRect(x + 6, y + h, Math.max(6, w - 12), 6);
         } else if (o.type === 'slope') {
-          // draw a triangle for slope
-          ctx.fillStyle = '#5aa0ff';
-          const x = o.x, w = o.w, h = o.h || 80;
-          if (o.dir === 'right') {
-            ctx.beginPath();
-            ctx.moveTo(x, o.y + h);
-            ctx.lineTo(x + w, o.y + h);
-            ctx.lineTo(x + w, o.y + h - h);
-            ctx.closePath();
-            ctx.fill();
+          // softened slope with gradient and rounded corner on rise
+          const slpH = o.h || 80;
+          const dir = o.dir || 'right';
+          const grad = ctx.createLinearGradient(x, y, x + w, y + slpH);
+          grad.addColorStop(0, '#63a8ff');
+          grad.addColorStop(1, '#2f8bdf');
+          ctx.fillStyle = grad;
+          ctx.beginPath();
+          if (dir === 'right') {
+            ctx.moveTo(x, y + slpH);
+            ctx.lineTo(x + w - rr, y + slpH);
+            ctx.quadraticCurveTo(x + w, y + slpH, x + w, y + slpH - rr);
+            ctx.lineTo(x + w, y + slpH - slpH + rr);
+            ctx.lineTo(x + rr, y + slpH - slpH);
+            ctx.quadraticCurveTo(x, y + slpH - slpH, x, y + slpH);
           } else {
-            ctx.beginPath();
-            ctx.moveTo(x, o.y + h);
-            ctx.lineTo(x + w, o.y + h - h);
-            ctx.lineTo(x + w, o.y + h);
-            ctx.closePath();
-            ctx.fill();
+            ctx.moveTo(x, y + slpH - slpH);
+            ctx.lineTo(x + w - rr, y + slpH - slpH);
+            ctx.quadraticCurveTo(x + w, y + slpH - slpH, x + w, y + slpH);
+            ctx.lineTo(x + rr, y + slpH);
+            ctx.quadraticCurveTo(x, y + slpH, x, y + slpH - rr);
           }
+          ctx.closePath();
+          ctx.fill();
         }
       }
       ctx.restore();
