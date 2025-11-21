@@ -208,18 +208,6 @@ Project/
 - The game supports local multiplayer via gamepad (up to several players)
 - All game logic runs client-side with no server required
 
-## 🚀 Deployment
-
-### GitHub Pages
-To deploy to GitHub Pages:
-1. Push your code to a GitHub repository
-2. Go to Settings → Pages
-3. Select "Branch: main / / (root)" as the source
-4. Your game will be available at `https://<username>.github.io/<repo-name>/`
-
-## 📄 License
-
-See LICENSE file for details.
 
 ## 🎉 Credits
 
