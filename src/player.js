@@ -88,10 +88,19 @@ export class Player {
         upHeld = ay < -0.5;
       }
     } else {
-      left = this.input.isDown('ArrowLeft', 'a', 'A');
-      right = this.input.isDown('ArrowRight', 'd', 'D');
-      jumpPressed = this.input.isDown(' ', 'Space', 'w', 'W', 'ArrowUp');
-      upHeld = this.input.isDown('ArrowUp', 'w', 'W');
+      // 如果是主玩家使用的共享输入（input 单例），只响应方向键，避免 WASD 干扰第二玩家
+      if (this.input === input) {
+        left = this.input.isDown('ArrowLeft');
+        right = this.input.isDown('ArrowRight');
+        jumpPressed = this.input.isDown(' ', 'Space', 'ArrowUp');
+        upHeld = this.input.isDown('ArrowUp');
+      } else {
+        // 自定义输入对象（第二玩家）使用 WASD + Space/ArrowUp
+        left = this.input.isDown('a','A');
+        right = this.input.isDown('d','D');
+        jumpPressed = this.input.isDown(' ','Space','w','W','ArrowUp');
+        upHeld = this.input.isDown('w','W','ArrowUp');
+      }
     }
 
     // Check if player is in safe haven (docking/hovering)

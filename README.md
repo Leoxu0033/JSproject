@@ -27,6 +27,8 @@ These controls are accessible from the top-level menu; see Controls below for ke
 - **Rich Audio** - Procedural music and sound effects using Web Audio API
 - **Visual Polish** - Particle effects, screen shake, and smooth animations
 
+- **Local Co-op (keyboard)** - You can add a second local player during gameplay via the OPS panel: click the "Co-op" button in the top-right `#ops` area to toggle Player 2. Player 2 uses WASD (and Space/W/ArrowUp to jump) and is assigned a distinct color. This join is only available while a level is running (not from the main menu level-select screen).
+
 ## 🎯 Gameplay
 
 ### Objective
@@ -54,8 +56,9 @@ Survive for 20 seconds in each level to progress. Avoid enemies or defeat them t
 ## 🎮 Controls
 
 ### Keyboard
-- **Movement**: Arrow Keys or `A`/`D`
-- **Jump**: `Space`, `W`, or `Arrow Up`
+### Keyboard
+- **Primary Player (P1)** — Movement: Arrow Keys (`←`/`→`); Jump: `Space` or `Arrow Up`.
+- **Secondary Player (P2, optional)** — When joined via the OPS `Co-op` button: Movement: `W`/`A`/`S`/`D`; Jump: `Space`, `W`, or `Arrow Up`.
 - **Dash**: `Left Shift` (dash in current direction)
 - **Pause**: `P`
 - **Mute**: `M`

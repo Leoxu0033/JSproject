@@ -3,9 +3,13 @@ import { levels } from './level.js';
 
 const canvas = document.getElementById('gameCanvas');
 const game = new Game(canvas);
+// 暴露 game 给可选的多人模块，避免侵入其他文件
+try { canvas.__game = game; } catch (e) {}
 
 // Start the game loop
 game.start();
+// 动态加载多人协作模块（如果不存在则忽略错误）
+import('./multiplayer.js').catch(() => {});
 
 // --- Main menu DOM wiring (polished, accessible) ---
 const mainMenu = document.getElementById('mainMenu');
