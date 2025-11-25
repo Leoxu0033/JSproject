@@ -60,7 +60,17 @@ export class Particle {
     const c = this.color || '#fff';
     ctx.fillStyle = c;
     const s = Math.max(1, this.size * (0.6 + t * 0.8));
-    ctx.fillRect(this.x - s / 2, this.y - s / 2, s, s);
+    
+    // Draw circle instead of rect
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, s / 2, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Add glow
+    ctx.shadowColor = c;
+    ctx.shadowBlur = 10;
+    ctx.fill();
+    
     ctx.restore();
   }
 }

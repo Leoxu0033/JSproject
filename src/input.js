@@ -1,8 +1,17 @@
 class Input {
   constructor() {
     this.keys = new Set();
-    window.addEventListener('keydown', (e) => this.keys.add(e.key));
-    window.addEventListener('keyup', (e) => this.keys.delete(e.key));
+    // Track both code (physical) and key (character) to be robust
+    window.addEventListener('keydown', (e) => {
+      this.keys.add(e.code);
+      this.keys.add(e.key);
+    });
+    window.addEventListener('keyup', (e) => {
+      this.keys.delete(e.code);
+      this.keys.delete(e.key);
+    });
+    // Clear keys when window loses focus to prevent sticky keys
+    window.addEventListener('blur', () => this.keys.clear());
   }
 
   isDown(...names) {

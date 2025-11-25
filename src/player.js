@@ -2,7 +2,7 @@ import { clamp } from './utils.js';
 import { input } from './input.js';
 
 export class Player {
-  constructor(x, y) {
+  constructor(x, y, keyMap = null) {
     this.pos = { x, y };
     this.w = 34;
     this.h = 34;
@@ -19,12 +19,14 @@ export class Player {
     this.jumpBuffer = 0.08;
     this.jumpBufferTimer = 0;
     // health / damage
-    this.lives = 3;
+    // lives are managed by Game class now (shared)
     this.invulnerable = false;
     this.invulTimer = 0;
     this.invulDuration = 1.0; // seconds
     // optional gamepad index for this player (null => keyboard)
     this.gamepadIndex = null;
+    // custom key mapping for 2P mode
+    this.keyMap = keyMap;
     // color for drawing (default white)
     this.color = '#ffffff';
     // previous gamepad button state for edge detection
@@ -44,6 +46,10 @@ export class Player {
     this.scaleY = 1;
     this.squashTimer = 0;
     this.trailTimer = 0;
+
+    // CPU Control for Menu/Attract Mode
+    this.isCpu = false;
+    this.cpuInput = { left: false, right: false, jump: false, up: false, dash: false };
 
   // motion trail (store recent positions for a fading trail)
   this._trail = [];
@@ -68,9 +74,14 @@ export class Player {
     let left = false;
     let right = false;
     let jumpPressed = false;
-
     let upHeld = false;
-    if (this.gamepadIndex !== null) {
+
+    if (this.isCpu) {
+      left = this.cpuInput.left;
+      right = this.cpuInput.right;
+      jumpPressed = this.cpuInput.jump;
+      upHeld = this.cpuInput.up;
+    } else if (this.gamepadIndex !== null) {
       const gps = navigator.getGamepads && navigator.getGamepads();
       const gp = gps ? gps[this.gamepadIndex] : null;
       if (gp) {
@@ -87,11 +98,19 @@ export class Player {
         const ay = gp.axes[1] || 0;
         upHeld = ay < -0.5;
       }
+    } else if (this.keyMap) {
+      // Custom key controls (for 2P mode)
+      left = this.input.isDown(...this.keyMap.left);
+      right = this.input.isDown(...this.keyMap.right);
+      jumpPressed = this.input.isDown(...this.keyMap.jump);
+      upHeld = this.input.isDown(...this.keyMap.up);
     } else {
-      left = this.input.isDown('ArrowLeft', 'a', 'A');
-      right = this.input.isDown('ArrowRight', 'd', 'D');
-      jumpPressed = this.input.isDown(' ', 'Space', 'w', 'W', 'ArrowUp');
-      upHeld = this.input.isDown('ArrowUp', 'w', 'W');
+      // Default controls (Single Player)
+      // Use physical keys (Codes) only to avoid sticky keys when modifiers (Shift) change
+      left = this.input.isDown('ArrowLeft', 'KeyA');
+      right = this.input.isDown('ArrowRight', 'KeyD');
+      jumpPressed = this.input.isDown('Space', 'KeyW', 'ArrowUp');
+      upHeld = this.input.isDown('ArrowUp', 'KeyW');
     }
 
     // Check if player is in safe haven (docking/hovering)
@@ -108,19 +127,163 @@ export class Player {
     
     // Store inSafeHaven state for gravity check
     this.inSafeHaven = inSafeHaven;
+
+    // --- DASH MECHANIC ---
+    // Update dash timers
+    if (this.dashCdTimer > 0) this.dashCdTimer -= dt;
+    if (this.isDashing) {
+      this.dashTimer -= dt;
+      if (this.dashTimer <= 0) {
+        this.isDashing = false;
+        this.vel.x = 0; // Stop dash momentum
+        this.vel.y = 0;
+      } else {
+        // Continue dash movement (ignore other inputs)
+        // Dash direction is determined at start of dash
+        this.pos.x += this.vel.x * dt;
+        this.pos.y += this.vel.y * dt;
+        
+        // Boundary checks during dash
+        // Respect the 12px frame walls
+        const border = 12;
+        const groundHeight = (game.currentLevel && game.currentLevel.groundY) || 60;
+        const maxY = game.height - groundHeight - this.h;
+        
+        // Clamp X
+        if (this.pos.x < border) {
+          this.pos.x = border;
+          this.vel.x = 0;
+        } else if (this.pos.x > game.width - border - this.w) {
+          this.pos.x = game.width - border - this.w;
+          this.vel.x = 0;
+        }
+        
+        // Clamp Y (Top and Bottom)
+        if (this.pos.y < border) {
+          this.pos.y = border;
+          this.vel.y = 0;
+        } else if (this.pos.y > maxY) {
+          this.pos.y = maxY;
+          this.vel.y = 0;
+        }
+        
+        // Spawn dash particles
+        if (game && game.spawnParticles && Math.random() < 0.5) {
+           game.spawnParticles(this.pos.x + this.w/2, this.pos.y + this.h/2, this.color, 2);
+        }
+        
+        // Update input state to prevent sticky keys/re-triggers
+        // We need to check dash input here because we return early
+        let dPressed = false;
+        if (this.isCpu) dPressed = this.cpuInput.dash;
+        else if (this.gamepadIndex !== null) {
+           const gps = navigator.getGamepads && navigator.getGamepads();
+           const gp = gps ? gps[this.gamepadIndex] : null;
+           if (gp && gp.buttons[2] && gp.buttons[2].pressed) dPressed = true;
+        } else if (this.keyMap) {
+           dPressed = this.input.isDown(...this.keyMap.dash || []);
+        } else {
+           dPressed = this.input.isDown('ShiftLeft', 'ShiftRight', 'KeyK');
+        }
+        this._prevDashKey = dPressed;
+
+        // Skip rest of update (gravity, normal movement)
+        return;
+      }
+    }
+
+    // Check for dash input
+    // Default dash keys: Shift, K, Slash (for P2)
+    let dashPressed = false;
+    if (this.isCpu) {
+      dashPressed = this.cpuInput.dash;
+    } else if (this.gamepadIndex !== null) {
+       const gps = navigator.getGamepads && navigator.getGamepads();
+       const gp = gps ? gps[this.gamepadIndex] : null;
+       if (gp && gp.buttons[2] && gp.buttons[2].pressed) dashPressed = true; // Button X/Square
+    } else if (this.keyMap) {
+       dashPressed = this.input.isDown(...this.keyMap.dash || []);
+    } else {
+       dashPressed = this.input.isDown('ShiftLeft', 'ShiftRight', 'KeyK');
+    }
+
+    // Trigger dash
+    if (dashPressed && !this._prevDashKey && !this.isDashing && this.dashCdTimer <= 0) {
+      // Determine dash direction based on current input or facing
+      let dx = 0;
+      let dy = 0;
+      
+      if (left) dx = -1;
+      else if (right) dx = 1;
+      
+      if (upHeld) dy = -1;
+      else if (this.input.isDown('ArrowDown', 'KeyS')) dy = 1;
+      
+      // If no direction pressed, dash in facing direction (default right)
+      if (dx === 0 && dy === 0) {
+         dx = this.lastDir || 1; 
+      }
+      
+      // Normalize
+      const len = Math.hypot(dx, dy);
+      if (len > 0) {
+        dx /= len;
+        dy /= len;
+      }
+      
+      this.isDashing = true;
+      this.dashTimer = this.dashDuration;
+      this.dashCdTimer = this.dashCooldown;
+      this.vel.x = dx * this.dashSpeed;
+      this.vel.y = dy * this.dashSpeed;
+      
+      if (game && game.audio) game.audio.playSfx('dash');
+      
+      // Initial burst
+      if (game && game.spawnParticles) {
+         game.spawnParticles(this.pos.x + this.w/2, this.pos.y + this.h/2, '#fff', 6);
+      }
+      
+      // Update prevDashKey to prevent immediate re-trigger
+      // We need to check dash input here because we return early
+      let dPressed = false;
+      if (this.isCpu) dPressed = this.cpuInput.dash;
+      else if (this.gamepadIndex !== null) {
+         const gps = navigator.getGamepads && navigator.getGamepads();
+         const gp = gps ? gps[this.gamepadIndex] : null;
+         if (gp && gp.buttons[2] && gp.buttons[2].pressed) dPressed = true;
+      } else if (this.keyMap) {
+         dPressed = this.input.isDown(...this.keyMap.dash || []);
+      } else {
+         dPressed = this.input.isDown('ShiftLeft', 'ShiftRight', 'KeyK');
+      }
+      this._prevDashKey = dPressed;
+
+      return; // Skip rest of frame
+    }
+    this._prevDashKey = dashPressed;
     
+    // Store last horizontal direction for dash
+    if (left) this.lastDir = -1;
+    else if (right) this.lastDir = 1;
+
     // Apply docking effect: reduce speed when in safe haven, but allow free movement
     const effectiveSpeed = inSafeHaven ? this.speed * 0.6 : this.speed; // 60% speed when docked
     
-    if (left) this.vel.x = -effectiveSpeed;
-    else if (right) this.vel.x = effectiveSpeed;
-    else this.vel.x = 0;
+    // Reset velocity if no input (fix for stuck movement after dash)
+    if (!left && !right) {
+        this.vel.x = 0;
+    } else if (left) {
+        this.vel.x = -effectiveSpeed;
+    } else if (right) {
+        this.vel.x = effectiveSpeed;
+    }
     
     // Vertical movement in safe haven (hovering)
     if (inSafeHaven) {
       if (upHeld) {
         this.vel.y = -this.speed * 0.6; // Move up
-      } else if (this.input && this.input.isDown && this.input.isDown('ArrowDown', 's', 'S')) {
+      } else if (this.input && this.input.isDown && this.input.isDown('ArrowDown', 'KeyS', 's', 'S')) {
         this.vel.y = this.speed * 0.6; // Move down
       } else {
         // Float in place (reduce vertical velocity)
@@ -503,6 +666,7 @@ export class Player {
   draw(ctx) {
     // minimal flat-hero-like square
     ctx.save();
+    
     // draw motion trail
     if (this._trail && this._trail.length) {
       for (let i = 0; i < this._trail.length; i++) {
@@ -511,22 +675,69 @@ export class Player {
         ctx.fillStyle = this._trailColor || (this.color || '#ffffff');
         ctx.globalAlpha = alpha * 0.9;
         const size = (this.w * (0.9 - i / (this._trail.length * 1.8)));
-        ctx.fillRect(t.x - size / 2, t.y - size / 2, size, size);
+        
+        // Rounded trail
+        const r = 4;
+        ctx.beginPath();
+        ctx.roundRect(t.x - size / 2, t.y - size / 2, size, size, r);
+        ctx.fill();
       }
       ctx.globalAlpha = 1.0;
     }
+    
     // shadow
     ctx.fillStyle = 'rgba(0,0,0,0.2)';
-    ctx.fillRect(this.pos.x + 4, this.pos.y + this.h + 4, this.w - 8, 6);
+    ctx.beginPath();
+    ctx.ellipse(this.pos.x + this.w/2, this.pos.y + this.h + 2, this.w/2 - 2, 3, 0, 0, Math.PI*2);
+    ctx.fill();
+
     // flash while invulnerable
     if (this.invulnerable) {
       const t = Math.floor(this.invulTimer * 20) % 2;
       ctx.globalAlpha = t ? 0.35 : 1.0;
     }
-  ctx.translate(this.pos.x + this.w / 2, this.pos.y + this.h / 2);
-  ctx.scale(this.scaleX, this.scaleY);
-  ctx.fillStyle = this.color || '#ffffff';
-  ctx.fillRect(-this.w / 2, -this.h / 2, this.w, this.h);
+    
+    ctx.translate(this.pos.x + this.w / 2, this.pos.y + this.h / 2);
+    ctx.scale(this.scaleX, this.scaleY);
+    
+    // Main body with rounded corners (softer)
+    ctx.fillStyle = this.color || '#ffffff';
+    const r = 10; // More rounded
+    ctx.beginPath();
+    ctx.roundRect(-this.w / 2, -this.h / 2, this.w, this.h, r);
+    ctx.fill();
+    
+    // Cute Face
+    const lookDir = Math.sign(this.vel.x) || 1;
+    const eyeOffset = lookDir * 2;
+    
+    // Eyes
+    ctx.fillStyle = '#333';
+    const eyeX = this.w * 0.22;
+    const eyeY = -this.h * 0.05;
+    const eyeSize = this.w * 0.12;
+    
+    // Left Eye
+    ctx.beginPath();
+    ctx.arc(-eyeX + eyeOffset, eyeY, eyeSize, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Right Eye
+    ctx.beginPath();
+    ctx.arc(eyeX + eyeOffset, eyeY, eyeSize, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Blush
+    ctx.fillStyle = 'rgba(255, 100, 100, 0.2)';
+    const blushX = this.w * 0.32;
+    const blushY = this.h * 0.15;
+    const blushSize = this.w * 0.15;
+    
+    ctx.beginPath();
+    ctx.arc(-blushX + eyeOffset, blushY, blushSize, 0, Math.PI * 2);
+    ctx.arc(blushX + eyeOffset, blushY, blushSize, 0, Math.PI * 2);
+    ctx.fill();
+
     ctx.globalAlpha = 1.0;
     ctx.restore();
   }
@@ -545,18 +756,31 @@ export class Player {
     return true;
   }
 
-  takeHit(source, game) {
-    if (this.invulnerable) return;
-    this.lives -= 1;
-    this.invulnerable = true;
-    this.invulTimer = this.invulDuration;
-    // knockback away from source
-    const dir = this.pos.x < source.pos.x ? -1 : 1;
-    this.vel.x = -dir * 220;
-    this.vel.y = -260;
-    if (game) {
+  takeHit(enemy, game) {
+    if (this.invulnerable || !this.alive) return;
+    
+    // Shared lives managed by Game
+    if (game.lives > 0) {
+      game.lives--;
+      this.invulnerable = true;
+      this.invulTimer = this.invulDuration;
+      
+      // Screen shake and flash
+      game.screenShake(12, 0.4);
+      game.flash('#ff0000', 0.1);
+      
+      // Sound
       game.audio.playSfx('hit');
-      game.spawnParticles(this.pos.x + this.w / 2, this.pos.y + this.h / 2, '#ffffff', 10);
+      
+      // Particles
+      game.spawnParticles(this.pos.x + this.w/2, this.pos.y + this.h/2, '#ff0000', 15);
+      
+      // Knockback
+      const centerE = enemy.pos.x + enemy.w/2;
+      const centerP = this.pos.x + this.w/2;
+      const dir = centerP < centerE ? -1 : 1;
+      this.vel.x = dir * 400;
+      this.vel.y = -300;
     }
   }
 }

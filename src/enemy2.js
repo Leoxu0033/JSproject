@@ -88,7 +88,34 @@ export class Enemy {
   }
 
   update(dt, game) {
-    const player = game.player;
+    // Find nearest alive player
+    let player = null;
+    let minD2 = Infinity;
+    
+    // Robustly gather candidates: use game.players if available, else game.player
+    const targets = (game.players && game.players.length > 0) ? game.players : (game.player ? [game.player] : []);
+    
+    // Find nearest target
+    for (const p of targets) {
+      if (!p) continue;
+      // If player has an alive flag and it's false, skip them
+      if (typeof p.alive !== 'undefined' && !p.alive) continue;
+
+      const pCx = p.pos.x + p.w / 2;
+      const pCy = p.pos.y + p.h / 2;
+      const myCx = this.pos.x + this.w / 2;
+      const myCy = this.pos.y + this.h / 2;
+
+      const dx = pCx - myCx;
+      const dy = pCy - myCy;
+      const d2 = dx*dx + dy*dy;
+      
+      if (d2 < minD2) {
+        minD2 = d2;
+        player = p;
+      }
+    }
+
     if (!player) return;
     const dx = (player.pos.x + player.w / 2) - (this.pos.x + this.w / 2);
     const dist = Math.abs(dx);
@@ -359,22 +386,176 @@ export class Enemy {
 
   draw(ctx) {
     ctx.save();
+    
+    const cx = this.pos.x + this.w / 2;
+    const cy = this.pos.y + this.h / 2;
+    
+    // Pulse effect
+    const pulse = 1 + Math.sin(performance.now() / 150) * 0.05;
+    ctx.translate(cx, cy);
+    ctx.scale(pulse, pulse);
+    
     // color by type
     if (this.type === 'tadpole') {
-      ctx.fillStyle = '#00e0ff';
+      ctx.fillStyle = '#4fc3f7'; // Softer blue
+      // Rotate towards velocity
+      const angle = Math.atan2(this.vel.y, this.vel.x);
+      ctx.rotate(angle);
+      
+      // Head
       ctx.beginPath();
-      ctx.ellipse(this.pos.x + this.w/2, this.pos.y + this.h/2, this.w/2, this.h/2, 0, 0, Math.PI*2);
+      ctx.arc(0, 0, this.w/2, 0, Math.PI*2);
       ctx.fill();
-      // draw a little "tail"
-      ctx.strokeStyle = 'rgba(0,224,255,0.5)';
+      
+      // Cute Eyes (White sclera + dark pupil)
+      ctx.fillStyle = 'white';
       ctx.beginPath();
-      ctx.moveTo(this.pos.x + this.w/2, this.pos.y + this.h/2);
-      ctx.lineTo(this.pos.x + this.w/2 - this.vel.x*0.06, this.pos.y + this.h/2 - this.vel.y*0.06);
+      ctx.arc(this.w/4, -this.h/4, this.w/5, 0, Math.PI*2);
+      ctx.arc(this.w/4, this.h/4, this.w/5, 0, Math.PI*2);
+      ctx.fill();
+      
+      ctx.fillStyle = '#333';
+      ctx.beginPath();
+      ctx.arc(this.w/4 + 1, -this.h/4, this.w/10, 0, Math.PI*2);
+      ctx.arc(this.w/4 + 1, this.h/4, this.w/10, 0, Math.PI*2);
+      ctx.fill();
+      
+      // Tail
+      ctx.strokeStyle = '#4fc3f7';
+      ctx.lineWidth = 4;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(-this.w/2, 0);
+      // Wiggle tail
+      const wiggle = Math.sin(performance.now() / 50) * 5;
+      ctx.quadraticCurveTo(-this.w, wiggle, -this.w * 1.8, 0);
       ctx.stroke();
-    } else if (this.type === 'chaser') ctx.fillStyle = '#ff8a65';
-    else if (this.type === 'jumper') ctx.fillStyle = '#ffd166';
-    else ctx.fillStyle = '#ff4d4d';
-    if (this.type !== 'tadpole') ctx.fillRect(this.pos.x, this.pos.y, this.w, this.h);
+      
+    } else if (this.type === 'chaser') {
+      // Triangle pointing at player
+      ctx.fillStyle = '#ffab91'; // Softer orange
+      // Rotate towards velocity if moving fast enough, else up
+      const angle = (Math.abs(this.vel.x) > 10 || Math.abs(this.vel.y) > 10) 
+        ? Math.atan2(this.vel.y, this.vel.x) 
+        : -Math.PI/2;
+      ctx.rotate(angle);
+      
+      // Rounded Triangle
+      ctx.beginPath();
+      const r = 4;
+      ctx.moveTo(this.w/2 - r, 0);
+      ctx.arcTo(this.w/2, 0, -this.w/2, -this.h/2, r);
+      ctx.arcTo(-this.w/2, -this.h/2, -this.w/2, this.h/2, r);
+      ctx.arcTo(-this.w/2, this.h/2, this.w/2, 0, r);
+      ctx.closePath();
+      ctx.fill();
+      
+      // Big Single Eye (Cyclops cute)
+      ctx.fillStyle = 'white';
+      ctx.beginPath();
+      ctx.arc(0, 0, this.w/3.5, 0, Math.PI*2);
+      ctx.fill();
+      
+      ctx.fillStyle = '#333';
+      ctx.beginPath();
+      ctx.arc(2, 0, this.w/7, 0, Math.PI*2);
+      ctx.fill();
+      
+    } else if (this.type === 'jumper') {
+      // Circle
+      ctx.fillStyle = '#ffe082'; // Softer yellow
+      ctx.beginPath();
+      ctx.arc(0, 0, this.w/2, 0, Math.PI*2);
+      ctx.fill();
+      
+      // Wide set eyes
+      ctx.fillStyle = '#333';
+      ctx.beginPath();
+      ctx.arc(-this.w/4, -this.h/6, this.w/8, 0, Math.PI*2);
+      ctx.arc(this.w/4, -this.h/6, this.w/8, 0, Math.PI*2);
+      ctx.fill();
+      
+      // Blush
+      ctx.fillStyle = 'rgba(255, 100, 100, 0.2)';
+      ctx.beginPath();
+      ctx.arc(-this.w/3, 0, this.w/6, 0, Math.PI*2);
+      ctx.arc(this.w/3, 0, this.w/6, 0, Math.PI*2);
+      ctx.fill();
+      
+    } else if (this.type === 'roamer') {
+      // Diamond
+      ctx.fillStyle = '#b39ddb'; // Softer purple
+      ctx.beginPath();
+      const r = 4;
+      ctx.moveTo(0, -this.h/2);
+      ctx.lineTo(this.w/2, 0);
+      ctx.lineTo(0, this.h/2);
+      ctx.lineTo(-this.w/2, 0);
+      ctx.closePath();
+      // Round joins would be nice but simple path is ok for now
+      ctx.fill();
+      
+      // Sleepy eyes (lines)
+      ctx.strokeStyle = '#333';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(-this.w/4, -this.h/6);
+      ctx.lineTo(-this.w/8, -this.h/6);
+      ctx.moveTo(this.w/8, -this.h/6);
+      ctx.lineTo(this.w/4, -this.h/6);
+      ctx.stroke();
+
+    } else if (this.type === 'floater') {
+      // Hexagon
+      ctx.fillStyle = '#81c784'; // Softer green
+      ctx.beginPath();
+      for (let i = 0; i < 6; i++) {
+        const angle = i * Math.PI / 3;
+        const x = Math.cos(angle) * this.w/2;
+        const y = Math.sin(angle) * this.h/2;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.closePath();
+      ctx.fill();
+      
+      // Happy face
+      ctx.fillStyle = '#333';
+      ctx.beginPath();
+      ctx.arc(-this.w/4, -this.h/6, this.w/10, 0, Math.PI*2);
+      ctx.arc(this.w/4, -this.h/6, this.w/10, 0, Math.PI*2);
+      ctx.fill();
+      
+      // Smile
+      ctx.beginPath();
+      ctx.arc(0, 0, this.w/4, 0.2, Math.PI - 0.2);
+      ctx.stroke();
+
+    } else {
+      // Walker (Default) - Rounded Square
+      ctx.fillStyle = '#ef5350'; // Softer red
+      const r = 8; // More rounded
+      ctx.beginPath();
+      ctx.roundRect(-this.w/2, -this.h/2, this.w, this.h, r);
+      ctx.fill();
+      
+      // Eyes
+      ctx.fillStyle = 'white';
+      const look = Math.sign(this.vel.x) || 1;
+      const off = look * 3;
+      
+      ctx.beginPath();
+      ctx.arc(-this.w/4 + off, -this.h/6, this.w/6, 0, Math.PI*2);
+      ctx.arc(this.w/4 + off, -this.h/6, this.w/6, 0, Math.PI*2);
+      ctx.fill();
+      
+      ctx.fillStyle = '#333';
+      ctx.beginPath();
+      ctx.arc(-this.w/4 + off + look, -this.h/6, this.w/12, 0, Math.PI*2);
+      ctx.arc(this.w/4 + off + look, -this.h/6, this.w/12, 0, Math.PI*2);
+      ctx.fill();
+    }
+    
     ctx.restore();
   }
 }

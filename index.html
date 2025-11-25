@@ -13,20 +13,24 @@
     <div id="wrapper">
       
       <canvas id="gameCanvas" width="900" height="600"></canvas>
-<div id="hud">
-        <div id="level">Level 1: Tutorial Arena</div>
-        <div id="timer">Time: 20.0s</div>
-        <div id="score">Score: 0</div>
-        <div id="level-score">Level Score: 0</div>
-        <div id="lives">Lives: 3</div>
-        
+      
+      <div id="level-container">
+        <div id="level">🚩 Level 1: Tutorial Arena</div>
+      </div>
 
+      <div id="hud">
+        <div id="timer"><span class="hud-icon">⏱️</span> <span class="hud-value">20.0s</span></div>
+        <div id="score"><span class="hud-icon">🏆</span> <span class="hud-value">0</span></div>
+        <div id="level-score"><span class="hud-icon">⭐</span> <span class="hud-value">0</span></div>
+        <div id="lives"><span class="hud-icon">❤️</span> <span class="hud-value">3</span></div>
       </div>
       <div id="ops">
-        <div id="instructions">WASD / Arrow keys to move — Space to jump — R to restart</div>
-        <div id="joinPrompt">Press a gamepad button to join as a player</div>
-        <div id="pause">Press P to pause</div>
-        <div id="mute">Sound: On (M)</div>
+        <div id="instructions">🔄 Press R to restart</div>
+        <div id="pause">⏸️ Press P to pause</div>
+        <div id="style-toggle">🎨 Style: Nature (Y)</div>
+        <div id="mute">🔊 Sound: On (M)</div>
+        <div id="music-toggle">🎵 Music: On (B)</div>
+        <div id="exit">🚪 Exit (ESC)</div>
       </div>
         
         <!-- overlay for game over with retry button -->

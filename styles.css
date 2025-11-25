@@ -5,7 +5,7 @@
   --white:#f8fafc;
 }
 *{box-sizing:border-box}
-html,body,#wrapper{height:100%;}
+html,body{height:100%;}
 body{
   margin:0;
   background:var(--bg);
@@ -15,17 +15,98 @@ body{
   align-items:center;
   justify-content:center;
 }
-#wrapper{position:relative;}
+#wrapper{
+  position:relative;
+  width: 900px;
+  height: 600px;
+}
 canvas{display:block;border-radius:8px;background:#0a0a0a;box-shadow:0 6px 30px rgba(0,0,0,0.7)}
-#hud{position:absolute;left:12px;top:12px;color:var(--white);font-size:14px}
-#ops{position:absolute;right:12px;top:12px;color:var(--white);font-size:14px}
 
-#hud > div{margin-bottom:6px}
+#level-container {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  width: 100%;
+  margin-bottom: 12px;
+  text-align: center;
+}
+#level {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--white);
+  text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+}
+
+#hud{
+  position: absolute;
+  left: 100%;
+  top: 0;
+  margin-left: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: auto;
+}
+
+#hud > div {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(15, 23, 36, 0.8);
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  transition: transform 0.2s ease;
+}
+
+#hud > div:hover {
+  transform: translateX(4px);
+  background: rgba(15, 23, 36, 0.95);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.hud-icon {
+  font-size: 24px;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+}
+
+.hud-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--white);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.5px;
+}
+
+/* Specific colors for values */
+#timer .hud-value { color: #ffd166; }
+#score .hud-value { color: #fbbf24; }
+#level-score .hud-value { color: #60a5fa; }
+#lives .hud-value { color: #f87171; }
+
+#ops{
+  position:absolute;
+  top: 100%;
+  left: 0;
+  width: 100%;
+  margin-top: 12px;
+  color:var(--white);
+  font-size:13px;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  gap: 24px;
+  opacity: 0.8;
+}
+
+#hud > div{margin-bottom:0}
 #level{font-weight:600;font-size:16px;color:#4ade80}
 #timer{font-weight:600;font-size:15px;color:#ffd166}
 #level-score{font-size:13px;color:#88ccff;opacity:0.9}
 
-#instructions{opacity:0.8;margin-top:6px;font-size:12px}
+#instructions{opacity:0.8;font-size:12px}
 
 .overlay{position:absolute;left:0;top:0;right:0;bottom:0;display:flex;align-items:center;justify-content:center}
 .overlay-card{background:linear-gradient(180deg,#0f1724, #0b1220);color:var(--white);padding:20px;border-radius:8px;box-shadow:0 10px 40px rgba(0,0,0,0.6);text-align:center}
@@ -33,7 +114,49 @@ canvas{display:block;border-radius:8px;background:#0a0a0a;box-shadow:0 6px 30px 
 .overlay button{background:var(--accent);color:#fff;border:none;padding:8px 14px;border-radius:6px;cursor:pointer;font-weight:600}
 .overlay button:hover{filter:brightness(1.05)}
 
-#mute{margin-top:6px;font-size:12px;opacity:0.9}
+#mute{font-size:12px;opacity:0.9;color:#cbd5e1}
+#music-toggle{font-size:12px;opacity:0.9;color:#cbd5e1}
 
 #joinPrompt{margin-top:6px;font-size:12px;opacity:0.9;color:#cbd5e1}
-#pause{margin-top:6px;font-size:12px;opacity:0.9;color:#cbd5e1}
+#pause{font-size:12px;opacity:0.9;color:#cbd5e1}
+#style-toggle{font-size:12px;opacity:0.9;color:#cbd5e1}
+#exit{font-size:12px;opacity:0.9;color:#cbd5e1}
+
+/* New Record Animation */
+@keyframes popIn {
+  0% { transform: scale(0.5); opacity: 0; }
+  60% { transform: scale(1.1); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.record-card {
+  background: linear-gradient(135deg, #ffd700 0%, #ffaa00 100%);
+  border: 2px solid #fff;
+  box-shadow: 0 0 30px rgba(255, 215, 0, 0.6);
+  animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  padding: 30px 50px;
+  transform-origin: center;
+}
+
+.record-title {
+  font-size: 32px;
+  margin: 0 0 10px 0;
+  color: #fff;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.record-score {
+  font-size: 24px;
+  margin: 0;
+  color: #fff;
+  font-weight: 700;
+}
+
+#record-value {
+  font-size: 36px;
+  color: #fff;
+  text-shadow: 0 2px 0 rgba(0,0,0,0.2);
+}

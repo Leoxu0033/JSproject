@@ -9,6 +9,25 @@ export class AudioManager {
     this.muted = false;
     this.musicOsc = null;
     this.buffers = {}; // map of loaded AudioBuffer samples
+    // Music flag: set true to enable background music
+    this.musicEnabled = true;
+    this.bgMusicBuffer = null;
+    this.bgMusicSource = null;
+    this.loadBgMusic();
+  }
+
+  async loadBgMusic() {
+    try {
+      const res = await fetch('assets/audio/bg.mp3');
+      if (!res.ok) throw new Error('Failed to fetch assets/audio/bg.mp3');
+      const arr = await res.arrayBuffer();
+      this.bgMusicBuffer = await this.ctx.decodeAudioData(arr);
+      if (this.musicEnabled && !this.bgMusicSource) {
+        this.playMusic();
+      }
+    } catch (err) {
+      console.warn('Background music load failed', err);
+    }
   }
 
   playSfx(type = 'click') {
@@ -25,77 +44,61 @@ export class AudioManager {
       return;
     }
     const now = this.ctx.currentTime;
-    const o = this.ctx.createOscillator();
-    const g = this.ctx.createGain();
-    o.type = 'square';
+    
+    // Helper to create oscillator with envelope
+    const createOsc = (type, freqStart, freqEnd, dur, volStart, volEnd) => {
+      const o = this.ctx.createOscillator();
+      const g = this.ctx.createGain();
+      o.type = type;
+      o.frequency.setValueAtTime(freqStart, now);
+      if (freqEnd !== null) o.frequency.exponentialRampToValueAtTime(freqEnd, now + dur);
+      g.gain.setValueAtTime(volStart, now);
+      g.gain.exponentialRampToValueAtTime(volEnd || 0.001, now + dur);
+      o.connect(g);
+      g.connect(this.master);
+      o.start(now);
+      o.stop(now + dur + 0.1);
+      return { o, g };
+    };
+
     if (type === 'jump') {
-      // Jump sound - higher pitch, quick
-      o.frequency.setValueAtTime(800, now);
-      o.frequency.exponentialRampToValueAtTime(400, now + 0.15);
-      g.gain.setValueAtTime(0.25, now);
-      g.gain.exponentialRampToValueAtTime(0.0001, now + 0.25);
+      // Jump: Quick rising sine
+      createOsc('sine', 300, 600, 0.15, 0.3, 0.01);
     } else if (type === 'stomp') {
-      // Stomp/kill enemy - punchy low sound
-      o.frequency.setValueAtTime(150, now);
-      o.frequency.exponentialRampToValueAtTime(80, now + 0.1);
-      g.gain.setValueAtTime(0.35, now);
-      g.gain.exponentialRampToValueAtTime(0.0001, now + 0.2);
+      // Stomp: Punchy kick (sine drop) + Noise burst
+      createOsc('sine', 200, 50, 0.15, 0.5, 0.01);
+      createOsc('square', 100, 50, 0.1, 0.1, 0.01); // Add some grit
     } else if (type === 'hit') {
-      // Player hit - harsh sound
-      o.frequency.setValueAtTime(100, now);
-      o.frequency.exponentialRampToValueAtTime(60, now + 0.2);
-      g.gain.setValueAtTime(0.4, now);
-      g.gain.exponentialRampToValueAtTime(0.0001, now + 0.4);
+      // Hit: Dissonant saw drop
+      createOsc('sawtooth', 200, 100, 0.2, 0.3, 0.01);
+      createOsc('sawtooth', 250, 120, 0.2, 0.3, 0.01);
     } else if (type === 'dash') {
-      // Dash sound - quick whoosh
-      o.type = 'sawtooth';
-      o.frequency.setValueAtTime(600, now);
-      o.frequency.exponentialRampToValueAtTime(200, now + 0.1);
-      g.gain.setValueAtTime(0.2, now);
-      g.gain.exponentialRampToValueAtTime(0.0001, now + 0.15);
+      // Dash: White noise swoosh (simulated with high freq saw)
+      createOsc('sawtooth', 800, 400, 0.15, 0.15, 0.01);
     } else if (type === 'land') {
-      // Landing sound - soft thud
-      o.frequency.setValueAtTime(180, now);
-      o.frequency.exponentialRampToValueAtTime(100, now + 0.1);
-      g.gain.setValueAtTime(0.15, now);
-      g.gain.exponentialRampToValueAtTime(0.0001, now + 0.15);
+      // Land: Soft thud
+      createOsc('sine', 150, 80, 0.1, 0.2, 0.01);
     } else if (type === 'collect' || type === 'score') {
-      // Score/collect - pleasant chime
-      o.type = 'sine';
-      o.frequency.setValueAtTime(880, now);
-      o.frequency.exponentialRampToValueAtTime(1320, now + 0.1);
-      g.gain.setValueAtTime(0.2, now);
-      g.gain.exponentialRampToValueAtTime(0.0001, now + 0.2);
+      // Collect: High ping
+      createOsc('sine', 1200, 1200, 0.1, 0.15, 0.01);
+      setTimeout(() => createOsc('sine', 1800, 1800, 0.1, 0.1, 0.01), 50);
     } else if (type === 'win') {
-      // Win sound - ascending melody
-      o.type = 'sine';
-      o.frequency.setValueAtTime(440, now);
-      o.frequency.setValueAtTime(554, now + 0.1);
-      o.frequency.setValueAtTime(659, now + 0.2);
-      g.gain.setValueAtTime(0.3, now);
-      g.gain.exponentialRampToValueAtTime(0.0001, now + 0.5);
+      // Win: Major chord arpeggio
+      const notes = [523.25, 659.25, 783.99, 1046.50]; // C Major
+      notes.forEach((freq, i) => {
+        setTimeout(() => createOsc('triangle', freq, freq, 0.4, 0.2, 0.01), i * 80);
+      });
     } else if (type === 'explosion') {
-      // Explosion - noise-like, louder
-      o.type = 'sawtooth';
-      o.frequency.setValueAtTime(80, now);
-      o.frequency.exponentialRampToValueAtTime(40, now + 0.3);
-      g.gain.setValueAtTime(0.7, now); // Increased from 0.4 to 0.7
-      g.gain.exponentialRampToValueAtTime(0.0001, now + 0.5);
+      // Explosion: Low rumble + noise
+      createOsc('sawtooth', 100, 20, 0.4, 0.5, 0.01);
+      createOsc('square', 50, 10, 0.5, 0.4, 0.01);
     } else if (type === 'select') {
-      // Menu select - click
-      o.frequency.setValueAtTime(600, now);
-      g.gain.setValueAtTime(0.2, now);
-      g.gain.exponentialRampToValueAtTime(0.0001, now + 0.1);
+      // Select: Crisp blip
+      createOsc('sine', 800, 800, 0.05, 0.2, 0.01);
     } else {
       // Default click
-      o.frequency.setValueAtTime(440, now);
-      g.gain.setValueAtTime(0.2, now);
-      g.gain.exponentialRampToValueAtTime(0.0001, now + 0.12);
+      createOsc('triangle', 400, 400, 0.05, 0.2, 0.01);
     }
-    o.connect(g);
-    g.connect(this.master);
-    o.start(now);
-    o.stop(now + 0.5);
   }
 
   // Load a map of samples {key: url}
@@ -128,49 +131,43 @@ export class AudioManager {
     this.master.gain.setValueAtTime(this.muted ? 0 : this._masterVolume, this.ctx.currentTime);
   }
 
+  toggleMusic() {
+    this.musicEnabled = !this.musicEnabled;
+    if (this.musicEnabled) {
+      this.playMusic();
+    } else {
+      this.stopMusic();
+    }
+  }
+
   playMusic() {
-    // Richer ambient pad using multiple oscillators
-    if (this.musicOsc) return; // already playing
-    const now = this.ctx.currentTime;
-    const o1 = this.ctx.createOscillator();
-    const o2 = this.ctx.createOscillator();
-    const o3 = this.ctx.createOscillator();
-    const g = this.ctx.createGain();
+    if (!this.musicEnabled) return; // disabled globally
+    if (this.bgMusicSource) return; // already playing
+    if (!this.bgMusicBuffer) return; // not loaded yet
+
+    const src = this.ctx.createBufferSource();
+    src.buffer = this.bgMusicBuffer;
+    src.loop = true;
     
-    // Base tone (A3)
-    o1.type = 'sine';
-    o1.frequency.setValueAtTime(220, now);
+    const gain = this.ctx.createGain();
+    gain.gain.value = 0.5; // Adjust volume for background music
     
-    // Fifth (E4)
-    o2.type = 'sine';
-    o2.frequency.setValueAtTime(330, now);
+    src.connect(gain);
+    gain.connect(this.master);
+    src.start(this.ctx.currentTime);
     
-    // Octave (A4) - adds richness
-    o3.type = 'triangle';
-    o3.frequency.setValueAtTime(440, now);
-    
-    // Increased music volume
-    g.gain.value = 0.08; // Increased from 0.02 to 0.08
-    
-    o1.connect(g);
-    o2.connect(g);
-    o3.connect(g);
-    g.connect(this.master);
-    o1.start(now);
-    o2.start(now);
-    o3.start(now);
-    this.musicOsc = { o1, o2, o3, g };
+    this.bgMusicSource = src;
   }
 
   stopMusic() {
-    if (!this.musicOsc) return;
-    const now = this.ctx.currentTime;
-    const { o1, o2, o3, g } = this.musicOsc;
-    g.gain.exponentialRampToValueAtTime(0.0001, now + 0.5);
-    o1.stop(now + 0.6);
-    o2.stop(now + 0.6);
-    o3.stop(now + 0.6);
-    this.musicOsc = null;
+    if (this.bgMusicSource) {
+      try {
+        this.bgMusicSource.stop();
+      } catch (e) {
+        // ignore if already stopped
+      }
+      this.bgMusicSource = null;
+    }
   }
   
   pauseMusic() {

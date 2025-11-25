@@ -8,19 +8,37 @@ A minimalist survival platformer game built with vanilla JavaScript, HTML5 Canva
 
 ### Key Features
 
-- **9 Unique Levels** - Each level has its own layout, obstacles, and enemy configurations
-- **Progressive Difficulty** - Enemy spawn rates and quantities increase as you progress
-- **Dynamic Safe Havens** - Randomly spawning safe zones where you can hide and hover freely
-- **Multiple Enemy Types** - Walkers, jumpers, floaters, roamers, and aggressive tadpoles
-- **Scoring System** - Track your best score for each level and total score across all levels
-- **Level Selection** - Choose any unlocked level from the level select menu
-- **Rich Audio** - Procedural music and sound effects using Web Audio API
-- **Visual Polish** - Particle effects, screen shake, and smooth animations
+- **10 Unique Levels** - Including a new **Tutorial Level** to learn the basics!
+- **5 Visual Styles** - Experience Neon, Cyber, Nature, Underwater, and Space themes!
+- **Local 2-Player Mode** - Play with a friend on the same keyboard!
+- **Star Rating System** - Earn 1 to 3 stars on each level based on your performance.
+- **Progressive Difficulty** - Enemy spawn rates and quantities increase as you progress.
+- **Dynamic Safe Havens** - Randomly spawning safe zones where you can hide and hover freely.
+- **Multiple Enemy Types** - Walkers, jumpers, floaters, roamers, and aggressive tadpoles.
+- **Scoring System** - Track your best score for each level and total score across all levels.
+- **Level Selection** - Beautiful glassmorphism UI to choose any unlocked level.
+- **Rich Audio** - Procedural music and sound effects using Web Audio API.
+- **Visual Polish** - Particle effects, screen shake, dynamic backgrounds, and smooth animations.
 
 ## 🎯 Gameplay
 
 ### Objective
 Survive for 20 seconds in each level to progress. Avoid enemies or defeat them to earn points.
+
+### Controls
+
+| Action | Player 1 | Player 2 |
+| :--- | :--- | :--- |
+| **Move** | WASD | Arrow Keys |
+| **Jump** | W / Space | Up Arrow |
+| **Dash** | Shift / K | / (Slash) |
+| **Pause** | P | P |
+| **Mute** | M | M |
+
+### 2-Player Co-op
+- Toggle 2-Player mode in the Level Select screen by pressing `TAB`.
+- Both players share a pool of **5 Lives**.
+- Work together to survive and defeat enemies!
 
 ### Enemy Types
 - **Walkers** - Basic enemies that patrol horizontally
@@ -38,21 +56,59 @@ Survive for 20 seconds in each level to progress. Avoid enemies or defeat them t
 ### Scoring
 - **Enemy Kills** - 100 points per enemy (non-tadpole)
 - **Full Health Bonus** - 1000 bonus points for completing a level with full health (3 lives)
+- **Star Rating** - Earn up to 3 stars per level based on your score!
 - **Best Score Tracking** - Each level tracks your highest score
 - **Total Score** - Sum of all level best scores
 
-## 🎮 Controls
+## 🛠️ Installation & Running
 
-### Keyboard
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/Leoxu0033/JSproject.git
+   cd JSproject
+   ```
+
+2. **Run a local server**
+   Since the game uses ES6 modules, it must be served via HTTP/HTTPS (not file://).
+   
+   **Using Python:**
+   ```bash
+   python3 -m http.server 8000
+   ```
+   
+   **Using Node (http-server):**
+   ```bash
+   npx http-server .
+   ```
+
+3. **Play**
+   Open your browser and navigate to `http://localhost:8000`.
+
+## 🤝 Contributing
+
+Feel free to fork the project and submit pull requests!
+
+## 📄 License
+
+This project is open source.
+
+
+### Keyboard (Single Player)
 - **Movement**: Arrow Keys or `A`/`D`
 - **Jump**: `Space`, `W`, or `Arrow Up`
 - **Dash**: `Left Shift` (dash in current direction)
 - **Pause**: `P`
 - **Mute**: `M`
 - **Restart**: `R` (when game over)
+- **Change Style**: `Y`
 - **Return to Level Select**: `ESC`
 - **Level Select Navigation**: Arrow Keys or `WASD`
 - **Select Level**: `Enter`
+- **Toggle 1P/2P Mode**: `TAB` (in Level Select)
+
+### Keyboard (2-Player Mode)
+- **Player 1**: `WASD` to move, `Space` or `W` to jump.
+- **Player 2**: `Arrow Keys` to move, `Enter` or `Arrow Up` to jump.
 
 ### Gamepad (Optional)
 - **Left Stick**: Move left/right
@@ -111,8 +167,9 @@ Project/
 
 ### Enemy Spawning
 - **Progressive Difficulty**: 
-  - Level 1: 1 batch, 2-3 tadpoles per batch
-  - Level 9: 3 batches, 5-7 tadpoles per batch
+  - Level 1-3: 1 batch, 2-3 tadpoles per batch
+  - Level 4-6: 1 batch, 4-5 tadpoles per batch
+  - Level 7-9: 3 batches, 6-7 tadpoles per batch
 - **Multiple Simultaneous Batches** - Higher levels spawn multiple batches at once
 - **Dynamic Spawn Rates** - Spawn intervals decrease as levels progress
 
@@ -124,10 +181,17 @@ Project/
 - **Jump Buffering** - Input buffering for more responsive controls
 
 ### Visual Effects
+- **5 Distinct Themes**:
+  - **Neon**: Classic grid style
+  - **Cyber**: Dark towers and neon lights
+  - **Nature**: Mountains, trees, and clouds
+  - **Underwater**: Deep blue gradients, bubbles, and seaweed
+  - **Space**: Stars, planets, and rotating asteroids
 - **Particle Systems** - Enemy death, explosions, and celebration effects
 - **Screen Shake** - Impact feedback for combat and explosions
 - **Flash Effects** - Visual feedback for important events
 - **Smooth Animations** - Squash/stretch effects and motion trails
+- **Fusion Main Menu** - A dynamic cover showcasing all visual styles
 
 ### Audio System
 - **Procedural Music** - Multi-layered ambient background music
@@ -144,6 +208,10 @@ Project/
 ## 🏆 Scoring & Progression
 
 ### Score System
+- **Star Ratings**:
+  - ⭐ 1 Star: Complete the level (< 400 pts)
+  - ⭐⭐ 2 Stars: Good performance (400 - 1000 pts)
+  - ⭐⭐⭐ 3 Stars: Excellent performance (> 1000 pts)
 - Each level tracks your best score independently
 - Total score is the sum of all level best scores
 - Scores persist across sessions using localStorage

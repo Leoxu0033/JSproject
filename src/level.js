@@ -1,6 +1,21 @@
 // Very small level system: level definitions and loader
 export const levels = [
   {
+    id: 0,
+    name: 'Basic Training',
+    bg: ['#1a1a2e', '#16213e'],
+    groundY: 60,
+    objects: [
+      { x: 300, height: 14, w: 100, type: 'platform', y: 150 },
+      { x: 500, height: 14, w: 100, type: 'platform', y: 200 },
+      { x: 650, height: 200, w: 14, type: 'wall', y: 60 }
+    ],
+    enemies: [
+      { type: 'walker', x: 800, yOffset: 0 }
+    ],
+    safeHaven: { x: 100, y: 100, w: 100, h: 100 }
+  },
+  {
     id: 1,
     name: 'Tutorial Arena',
     bg: ['#081226', '#0b1220'],
