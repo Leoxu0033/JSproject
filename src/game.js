@@ -2083,17 +2083,56 @@ export default class Game {
     
     const time = performance.now() / 1000;
     
-    // 1. Dynamic Background
-    // Deep space/ocean gradient
-    const bgGrad = ctx.createRadialGradient(
-      this.width / 2, this.height / 2, 0,
-      this.width / 2, this.height / 2, this.width
-    );
-    bgGrad.addColorStop(0, '#1e293b');
-    bgGrad.addColorStop(1, '#020617');
+    // 1. Dynamic Background based on Style
+    let bgGrad;
+    if (this.bgStyle === 0) { // Neon
+        bgGrad = ctx.createRadialGradient(this.width/2, this.height/2, 0, this.width/2, this.height/2, this.width);
+        bgGrad.addColorStop(0, '#2d1b4e');
+        bgGrad.addColorStop(1, '#0f0518');
+    } else if (this.bgStyle === 1) { // Cyber
+        bgGrad = ctx.createLinearGradient(0, 0, 0, this.height);
+        bgGrad.addColorStop(0, '#0f172a');
+        bgGrad.addColorStop(1, '#1e293b');
+    } else if (this.bgStyle === 2) { // Nature
+        bgGrad = ctx.createLinearGradient(0, 0, 0, this.height);
+        bgGrad.addColorStop(0, '#87CEEB');
+        bgGrad.addColorStop(1, '#E0F7FA');
+    } else if (this.bgStyle === 3) { // Underwater
+        bgGrad = ctx.createLinearGradient(0, 0, 0, this.height);
+        bgGrad.addColorStop(0, '#0984e3');
+        bgGrad.addColorStop(1, '#000000');
+    } else { // Space
+        bgGrad = ctx.createRadialGradient(this.width/2, this.height/2, 0, this.width/2, this.height/2, this.width);
+        bgGrad.addColorStop(0, '#1e293b');
+        bgGrad.addColorStop(1, '#020617');
+    }
     ctx.fillStyle = bgGrad;
     ctx.fillRect(0, 0, this.width, this.height);
     
+    // Nebula Effects (Only for Space/Neon/Cyber)
+    if (this.bgStyle !== 2) {
+        ctx.save();
+        ctx.globalCompositeOperation = 'screen';
+        // Nebula 1 (Purple/Blue)
+        const neb1X = this.width * 0.3 + Math.sin(time * 0.2) * 100;
+        const neb1Y = this.height * 0.4 + Math.cos(time * 0.3) * 50;
+        const neb1Grad = ctx.createRadialGradient(neb1X, neb1Y, 0, neb1X, neb1Y, 400);
+        neb1Grad.addColorStop(0, 'rgba(76, 29, 149, 0.2)'); // Purple
+        neb1Grad.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = neb1Grad;
+        ctx.fillRect(0, 0, this.width, this.height);
+
+        // Nebula 2 (Teal/Green)
+        const neb2X = this.width * 0.7 + Math.cos(time * 0.25) * 100;
+        const neb2Y = this.height * 0.6 + Math.sin(time * 0.35) * 50;
+        const neb2Grad = ctx.createRadialGradient(neb2X, neb2Y, 0, neb2X, neb2Y, 350);
+        neb2Grad.addColorStop(0, 'rgba(16, 185, 129, 0.15)'); // Emerald
+        neb2Grad.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = neb2Grad;
+        ctx.fillRect(0, 0, this.width, this.height);
+        ctx.restore();
+    }
+
     // Animated Grid
     ctx.save();
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
@@ -2115,14 +2154,49 @@ export default class Game {
     ctx.restore();
     
     // Floating particles (background decoration)
-    for(let i=0; i<20; i++) {
-        const px = (Math.sin(i * 132.1 + time * 0.1) * 0.5 + 0.5) * this.width;
-        const py = (Math.cos(i * 45.3 + time * 0.15) * 0.5 + 0.5) * this.height;
-        const size = (Math.sin(i + time) + 2) * 2;
-        ctx.fillStyle = `rgba(255, 255, 255, ${0.05 + Math.sin(i)*0.02})`;
+    for(let i=0; i<40; i++) {
+        // Drifting upwards
+        const speed = (i % 5 + 1) * 20;
+        const yOffset = (time * speed) % this.height;
+        
+        const px = (Math.sin(i * 132.1) * 0.5 + 0.5) * this.width;
+        let py = (Math.cos(i * 45.3) * 0.5 + 0.5) * this.height - yOffset;
+        if (py < 0) py += this.height; // Wrap around
+        
+        const size = (Math.sin(i + time * 2) + 2) * 1.5;
+        const alpha = 0.1 + Math.sin(i * 10 + time) * 0.05;
+        
+        ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
         ctx.beginPath();
         ctx.arc(px, py, size, 0, Math.PI*2);
         ctx.fill();
+    }
+
+    // Shooting Stars
+    const starTime = time * 0.7; 
+    const starCycle = Math.floor(starTime);
+    const starProgress = starTime - starCycle; // 0 to 1
+    
+    if (starProgress < 0.15) { // Visible for first 15% of cycle
+         // Pseudo-random pos based on cycle
+         const seed = starCycle * 123.45;
+         const sx = (Math.sin(seed) * 0.5 + 0.5) * this.width;
+         const sy = (Math.cos(seed) * 0.5 + 0.5) * this.height * 0.6; 
+         const len = 150;
+         
+         ctx.save();
+         const fade = 1 - (starProgress / 0.15);
+         const grad = ctx.createLinearGradient(sx, sy, sx - len, sy + len);
+         grad.addColorStop(0, `rgba(255, 255, 255, ${fade})`);
+         grad.addColorStop(1, `rgba(255, 255, 255, 0)`);
+         
+         ctx.strokeStyle = grad;
+         ctx.lineWidth = 2;
+         ctx.beginPath();
+         ctx.moveTo(sx, sy);
+         ctx.lineTo(sx - len, sy + len); // Diagonal down-left
+         ctx.stroke();
+         ctx.restore();
     }
 
     // 2. Header Section
@@ -2202,6 +2276,15 @@ export default class Game {
     ctx.fillStyle = '#e2e8f0';
     ctx.font = '13px sans-serif';
     ctx.fillText('Arrows/WASD: Move • Enter: Select • TAB: Toggle Mode', this.width / 2, modeY + modeH + 20);
+    
+    // Style Indicator (Top Left)
+    ctx.save();
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+    ctx.font = 'bold 16px sans-serif';
+    ctx.fillText(`🎨 Style: ${this.bgStyles[this.bgStyle]} (Y)`, 20, 20);
+    ctx.restore();
 
     // 4. Level Grid
     const cols = 3;
@@ -2231,8 +2314,10 @@ export default class Game {
       let scale = 1;
       let lift = 0;
       if (isSelected) {
-        scale = 1.05;
-        lift = -5;
+        // Pulse effect
+        const pulse = Math.sin(time * 5) * 0.02;
+        scale = 1.05 + pulse;
+        lift = -5 + pulse * 10;
       }
       
       const cx = x + cardW/2;
@@ -2248,10 +2333,13 @@ export default class Game {
       if (isSelected) {
         cardGrad.addColorStop(0, '#1e293b');
         cardGrad.addColorStop(1, '#0f172a');
-        ctx.strokeStyle = '#4ade80';
+        
+        // Pulsing border
+        const alpha = 0.6 + Math.sin(time * 5) * 0.4;
+        ctx.strokeStyle = `rgba(74, 222, 128, ${alpha})`;
         ctx.lineWidth = 2;
         ctx.shadowColor = '#4ade80';
-        ctx.shadowBlur = 15;
+        ctx.shadowBlur = 15 + Math.sin(time * 5) * 5;
       } else {
         cardGrad.addColorStop(0, 'rgba(30, 41, 59, 0.6)');
         cardGrad.addColorStop(1, 'rgba(15, 23, 36, 0.6)');

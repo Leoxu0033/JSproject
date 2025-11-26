@@ -128,6 +128,19 @@ window.addEventListener('keydown', (e) => {
       e.preventDefault();
       return;
     }
+    if (e.key === 'y' || e.key === 'Y') {
+      // Toggle Background Style
+      game.bgStyle = (game.bgStyle + 1) % game.bgStyles.length;
+      if (game.audio) game.audio.playSfx('select');
+      
+      // Update DOM element if it exists (though we are in canvas menu)
+      const styleEl = document.getElementById('style-toggle');
+      if (styleEl) {
+        styleEl.textContent = `🎨 Style: ${game.bgStyles[game.bgStyle]} (Y)`;
+      }
+      e.preventDefault();
+      return;
+    }
     if (e.key === 'Escape') {
       // Return to Main Menu
       game.showLevelSelect = false;
