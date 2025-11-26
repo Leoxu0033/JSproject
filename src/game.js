@@ -1473,14 +1473,14 @@ export default class Game {
     const ctx = this.ctx;
     ctx.clearRect(0, 0, this.width, this.height);
 
-    // Render main menu
-    if (this.showMainMenu) {
+    // Render main menu (skip canvas-drawn menus when mobile UI overlays are used)
+    if (this.showMainMenu && !this.mobileUI) {
       this._renderMainMenu(ctx);
       return;
     }
 
-    // Render level selection menu
-    if (this.showLevelSelect) {
+    // Render level selection menu (skip on mobile UI)
+    if (this.showLevelSelect && !this.mobileUI) {
       this._renderLevelSelect(ctx);
       return;
     }

@@ -11,6 +11,14 @@ const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints &&
 if (isTouchDevice) {
   game.twoPlayerMode = false;
   game.mobile = true;
+  // Inform game to use mobile UI overlays instead of canvas-drawn menus
+  game.mobileUI = true;
+  // Ensure game starts at main menu for mobile and not level select
+  game.showMainMenu = true;
+  game.showLevelSelect = false;
+  // Hide canvas initially to avoid desktop menus showing under mobile overlays
+  const c = document.getElementById('gameCanvas');
+  if (c) c.style.visibility = 'hidden';
 } else {
   game.mobile = false;
 }
