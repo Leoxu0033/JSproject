@@ -95,8 +95,6 @@ function createJoystick() {
   joystick._follow = false;
   let centerX = 0;
   let centerY = 0;
-  let lastX = 0;
-  let lastY = 0;
   let _currDirs = { left: false, right: false, up: false, down: false };
 
   function clearDirs() {
@@ -104,8 +102,7 @@ function createJoystick() {
       const codeMap = { ArrowLeft:37, ArrowRight:39, ArrowUp:38, ArrowDown:40 };
       synthKey('keyup', k, codeMap[k]);
     });
-    // reset knob visual
-    if (knob) knob.style.transform = 'translate(-50%, -50%)';
+    // NOTE: do not reset knob visual here — hideJoystick will animate knob back to center
     _currDirs.left = _currDirs.right = _currDirs.up = _currDirs.down = false;
   }
 
@@ -120,15 +117,46 @@ function createJoystick() {
     joystick.style.display = 'block';
     centerX = x; centerY = y;
     startX = x; startY = y;
-    lastX = x; lastY = y;
     activePointerId = pointerId;
-    if (knob) knob.style.transform = 'translate(-50%, -50%)';
+    if (knob) {
+      // disable transition while dragging so knob follows immediately
+      knob.style.transition = 'none';
+      knob.style.transform = 'translate(-50%, -50%)';
+    }
   }
 
   function hideJoystick() {
-    joystick.style.display = 'none';
-    activePointerId = null;
-    clearDirs();
+    // animate knob back to center, then hide
+    if (knob) {
+      // ensure we have a transition for the rebound
+      knob.style.transition = 'transform 180ms cubic-bezier(.2,.9,.3,1)';
+      // center the knob (will animate)
+      knob.style.transform = 'translate(-50%, -50%)';
+      const onEnd = (ev) => {
+        if (ev && ev.propertyName !== 'transform') return;
+        knob.removeEventListener('transitionend', onEnd);
+        try { joystick.style.display = 'none'; } catch(e){}
+        activePointerId = null;
+        clearDirs();
+        // cleanup transition style after animation
+        try { knob.style.transition = 'none'; } catch(e){}
+      };
+      knob.addEventListener('transitionend', onEnd);
+      // safety fallback in case transitionend doesn't fire
+      setTimeout(() => {
+        if (knob) {
+          try { knob.removeEventListener('transitionend', onEnd); } catch(e){}
+          try { joystick.style.display = 'none'; } catch(e){}
+          activePointerId = null;
+          clearDirs();
+          try { knob.style.transition = 'none'; } catch(e){}
+        }
+      }, 260);
+    } else {
+      joystick.style.display = 'none';
+      activePointerId = null;
+      clearDirs();
+    }
   }
 
   // global pointer handlers so the joystick can follow outside its initial bounds
@@ -146,26 +174,20 @@ function createJoystick() {
   document.addEventListener('pointermove', e => {
     if (activePointerId === null || e.pointerId !== activePointerId) return;
     const jwRect = joystick.getBoundingClientRect();
-    // Movement delta since last event
-    const dx = e.clientX - lastX;
-    const dy = e.clientY - lastY;
-    // Move base to current finger (base follows finger)
+    // displacement from base center
+    const dx = e.clientX - centerX;
+    const dy = e.clientY - centerY;
     const jw = parseInt(joystick.style.width) || jwRect.width || 120;
-    const jh = parseInt(joystick.style.height) || jw;
-    const left = Math.round(e.clientX - jw / 2);
-    const top = Math.round(e.clientY - jh / 2);
-    joystick.style.left = `${left}px`;
-    joystick.style.top = `${top}px`;
-    // Visual knob shows amplified recent delta to indicate direction
-    const max = (jw/2) - 10;
-    const amp = 3.5; // amplify small finger deltas for visibility
-    let kx = Math.max(-max, Math.min(max, dx * amp));
-    let ky = Math.max(-max, Math.min(max, dy * amp));
-    if (knob) knob.style.transform = `translate(calc(-50% + ${kx}px), calc(-50% + ${ky}px))`;
-    // Synthesize directional keys from delta (swipe direction)
-    const dead = 6; // smaller dead-zone for delta-based control
+    const max = (jw / 2) - 10;
+    const dist = Math.hypot(dx, dy);
+    const nx = dist > 0 ? dx / dist : 0;
+    const ny = dist > 0 ? dy / dist : 0;
+    const limited = Math.min(dist, max);
+    // move knob within base
+    if (knob) knob.style.transform = `translate(calc(-50% + ${nx * limited}px), calc(-50% + ${ny * limited}px))`;
+    // Synthesize directional keys from displacement
+    const dead = Math.min(12, max * 0.15);
     const want = { left: dx < -dead, right: dx > dead, up: dy < -dead, down: dy > dead };
-    // update key state only on change
     if (want.left && !_currDirs.left) synthKey('keydown','ArrowLeft',37);
     if (!want.left && _currDirs.left) synthKey('keyup','ArrowLeft',37);
     if (want.right && !_currDirs.right) synthKey('keydown','ArrowRight',39);
@@ -176,7 +198,6 @@ function createJoystick() {
     if (!want.down && _currDirs.down) synthKey('keyup','ArrowDown',40);
     _currDirs = want;
     if (MOBILE_INPUT_DEBUG) console.log('[mobile-input] pointermove dirs:', Array.from(input.keys));
-    lastX = e.clientX; lastY = e.clientY;
     e.preventDefault();
   }, { passive: false });
 
@@ -203,20 +224,16 @@ function createJoystick() {
     const touches = Array.from(e.changedTouches);
     const t = touches.find(x => x.identifier === activePointerId);
     if (!t) return;
-    const dx = t.clientX - lastX;
-    const dy = t.clientY - lastY;
+    const dx = t.clientX - centerX;
+    const dy = t.clientY - centerY;
     const jw = parseInt(joystick.style.width) || joystick.getBoundingClientRect().width || 120;
-    const jh = parseInt(joystick.style.height) || jw;
-    const left = Math.round(t.clientX - jw / 2);
-    const top = Math.round(t.clientY - jh / 2);
-    joystick.style.left = `${left}px`;
-    joystick.style.top = `${top}px`;
-    const max = (jw/2) - 10;
-    const amp = 3.5;
-    let kx = Math.max(-max, Math.min(max, dx * amp));
-    let ky = Math.max(-max, Math.min(max, dy * amp));
-    if (knob) knob.style.transform = `translate(calc(-50% + ${kx}px), calc(-50% + ${ky}px))`;
-    const dead = 6;
+    const max = (jw / 2) - 10;
+    const dist = Math.hypot(dx, dy);
+    const nx = dist > 0 ? dx / dist : 0;
+    const ny = dist > 0 ? dy / dist : 0;
+    const limited = Math.min(dist, max);
+    if (knob) knob.style.transform = `translate(calc(-50% + ${nx * limited}px), calc(-50% + ${ny * limited}px))`;
+    const dead = Math.min(12, max * 0.15);
     const want = { left: dx < -dead, right: dx > dead, up: dy < -dead, down: dy > dead };
     if (want.left && !_currDirs.left) synthKey('keydown','ArrowLeft',37);
     if (!want.left && _currDirs.left) synthKey('keyup','ArrowLeft',37);
@@ -228,7 +245,6 @@ function createJoystick() {
     if (!want.down && _currDirs.down) synthKey('keyup','ArrowDown',40);
     _currDirs = want;
     if (MOBILE_INPUT_DEBUG) console.log('[mobile-input] touchmove dirs:', Array.from(input.keys));
-    lastX = t.clientX; lastY = t.clientY;
     e.preventDefault();
   }, { passive: false });
 
