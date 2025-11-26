@@ -4,6 +4,7 @@ import { input } from './input.js';
 import { levels } from './level.js';
 
 console.log('[mobile-input] module loaded');
+const MOBILE_INPUT_DEBUG = false; // set true to enable debug logs
 
 function codeNameFromKeyCode(keyCode) {
   const map = {
@@ -96,6 +97,7 @@ function createJoystick() {
   let centerY = 0;
   let lastX = 0;
   let lastY = 0;
+  let _currDirs = { left: false, right: false, up: false, down: false };
 
   function clearDirs() {
     ['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].forEach(k => {
@@ -104,6 +106,7 @@ function createJoystick() {
     });
     // reset knob visual
     if (knob) knob.style.transform = 'translate(-50%, -50%)';
+    _currDirs.left = _currDirs.right = _currDirs.up = _currDirs.down = false;
   }
 
   // We'll show the joystick at the user's finger (activation on left half)
@@ -160,12 +163,19 @@ function createJoystick() {
     let ky = Math.max(-max, Math.min(max, dy * amp));
     if (knob) knob.style.transform = `translate(calc(-50% + ${kx}px), calc(-50% + ${ky}px))`;
     // Synthesize directional keys from delta (swipe direction)
-    clearDirs();
     const dead = 6; // smaller dead-zone for delta-based control
-    if (dx < -dead) synthKey('keydown','ArrowLeft',37);
-    else if (dx > dead) synthKey('keydown','ArrowRight',39);
-    if (dy < -dead) synthKey('keydown','ArrowUp',38);
-    else if (dy > dead) synthKey('keydown','ArrowDown',40);
+    const want = { left: dx < -dead, right: dx > dead, up: dy < -dead, down: dy > dead };
+    // update key state only on change
+    if (want.left && !_currDirs.left) synthKey('keydown','ArrowLeft',37);
+    if (!want.left && _currDirs.left) synthKey('keyup','ArrowLeft',37);
+    if (want.right && !_currDirs.right) synthKey('keydown','ArrowRight',39);
+    if (!want.right && _currDirs.right) synthKey('keyup','ArrowRight',39);
+    if (want.up && !_currDirs.up) synthKey('keydown','ArrowUp',38);
+    if (!want.up && _currDirs.up) synthKey('keyup','ArrowUp',38);
+    if (want.down && !_currDirs.down) synthKey('keydown','ArrowDown',40);
+    if (!want.down && _currDirs.down) synthKey('keyup','ArrowDown',40);
+    _currDirs = want;
+    if (MOBILE_INPUT_DEBUG) console.log('[mobile-input] pointermove dirs:', Array.from(input.keys));
     lastX = e.clientX; lastY = e.clientY;
     e.preventDefault();
   }, { passive: false });
@@ -206,12 +216,18 @@ function createJoystick() {
     let kx = Math.max(-max, Math.min(max, dx * amp));
     let ky = Math.max(-max, Math.min(max, dy * amp));
     if (knob) knob.style.transform = `translate(calc(-50% + ${kx}px), calc(-50% + ${ky}px))`;
-    clearDirs();
     const dead = 6;
-    if (dx < -dead) synthKey('keydown','ArrowLeft',37);
-    else if (dx > dead) synthKey('keydown','ArrowRight',39);
-    if (dy < -dead) synthKey('keydown','ArrowUp',38);
-    else if (dy > dead) synthKey('keydown','ArrowDown',40);
+    const want = { left: dx < -dead, right: dx > dead, up: dy < -dead, down: dy > dead };
+    if (want.left && !_currDirs.left) synthKey('keydown','ArrowLeft',37);
+    if (!want.left && _currDirs.left) synthKey('keyup','ArrowLeft',37);
+    if (want.right && !_currDirs.right) synthKey('keydown','ArrowRight',39);
+    if (!want.right && _currDirs.right) synthKey('keyup','ArrowRight',39);
+    if (want.up && !_currDirs.up) synthKey('keydown','ArrowUp',38);
+    if (!want.up && _currDirs.up) synthKey('keyup','ArrowUp',38);
+    if (want.down && !_currDirs.down) synthKey('keydown','ArrowDown',40);
+    if (!want.down && _currDirs.down) synthKey('keyup','ArrowDown',40);
+    _currDirs = want;
+    if (MOBILE_INPUT_DEBUG) console.log('[mobile-input] touchmove dirs:', Array.from(input.keys));
     lastX = t.clientX; lastY = t.clientY;
     e.preventDefault();
   }, { passive: false });
