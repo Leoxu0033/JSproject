@@ -22,8 +22,9 @@ body{
   width: 900px;
   height: 600px;
   max-width: 100%;
-  max-height: 100vh;
-  max-height: 100dvh; /* Use dynamic viewport height if supported */
+  max-height: calc(100vh - 80px); /* Leave space for top bar */
+  max-height: calc(100dvh - 80px);
+  margin-top: 40px; /* Push down slightly */
 }
 canvas{
   display:block;
@@ -37,7 +38,7 @@ canvas{
 
 #level-container {
   position: absolute;
-  top: 20px;
+  top: -50px; /* Place above the canvas */
   left: 0;
   width: 100%;
   text-align: center;
@@ -337,12 +338,6 @@ canvas{
     font-size: 12px;
     background: rgba(0, 0, 0, 0.3);
     border: none;
-  }
-
-  /* Move Level Name to bottom on mobile to clear top view */
-  #level-container {
-    top: auto;
-    bottom: 120px;
   }
   
   .hud-icon { font-size: 14px; }
