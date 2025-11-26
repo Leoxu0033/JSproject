@@ -273,30 +273,61 @@ function createMobileMainMenu() {
   });
 
   const card = document.createElement('div');
-  Object.assign(card.style, { background: 'rgba(15,23,36,0.95)', padding: '18px', borderRadius: '10px', textAlign: 'center', color: '#fff' });
+  Object.assign(card.style, { background: 'rgba(15,23,36,0.95)', padding: '18px', borderRadius: '10px', textAlign: 'center', color: '#fff', width: '320px' });
   const title = document.createElement('div');
-  title.textContent = 'Mini Flat Heroes';
-  Object.assign(title.style, { fontSize: '20px', fontWeight: 700, marginBottom: '12px' });
+  title.textContent = 'MINI FLAT HEROES';
+  Object.assign(title.style, { fontSize: '22px', fontWeight: 900, marginBottom: '10px', letterSpacing: '1px' });
+
+  // Big Start button (merges 1P/2P)
   const start = document.createElement('button');
   start.id = 'mobile-start';
-  start.textContent = 'Start';
-  Object.assign(start.style, { padding: '10px 16px', fontSize: '16px', borderRadius: '8px', background: '#ff4d4d', color: '#fff', border: 'none' });
+  start.textContent = 'START';
+  Object.assign(start.style, { padding: '14px 18px', fontSize: '18px', borderRadius: '10px', background: '#4ade80', color: '#072', border: 'none', fontWeight: 700, width: '100%', marginBottom: '10px' });
   start.addEventListener('click', (e) => {
     const g = window.game;
     if (g) {
       g.showMainMenu = false;
       g.showLevelSelect = true;
-      // ensure the canvas menu gets updated immediately
     }
-    // Show mobile level select overlay
     const lvl = document.getElementById('mobile-level-select');
     if (lvl) lvl.style.display = 'flex';
     overlay.style.display = 'none';
     e && e.preventDefault();
   });
 
+  // Tutorial button
+  const tutorial = document.createElement('button');
+  tutorial.id = 'mobile-tutorial';
+  tutorial.textContent = 'TUTORIAL';
+  Object.assign(tutorial.style, { padding: '10px 14px', fontSize: '16px', borderRadius: '8px', background: 'rgba(255,255,255,0.06)', color: '#fff', border: 'none', width: '100%' });
+  tutorial.addEventListener('click', (e) => {
+    const g = window.game;
+    if (g) {
+      g.showMainMenu = false;
+      g.showLevelSelect = false;
+      g.currentLevelIndex = 0;
+      g.score = 0;
+      g.levelStartScore = 0;
+      g.loadLevel(0);
+    }
+    overlay.style.display = 'none';
+    e && e.preventDefault();
+  });
+
+  // Instruction and footer
+  const hint = document.createElement('div');
+  hint.textContent = 'Use touch to select • Start to pick a level';
+  Object.assign(hint.style, { fontSize: '12px', color: 'rgba(255,255,255,0.8)', marginTop: '10px' });
+
+  const ver = document.createElement('div');
+  ver.textContent = 'v1.0 • Mobile';
+  Object.assign(ver.style, { fontSize: '12px', color: 'rgba(255,255,255,0.6)', marginTop: '8px' });
+
   card.appendChild(title);
   card.appendChild(start);
+  card.appendChild(tutorial);
+  card.appendChild(hint);
+  card.appendChild(ver);
   overlay.appendChild(card);
   document.body.appendChild(overlay);
 }
@@ -409,6 +440,27 @@ function initMobileUI() {
   createMobileLevelSelect();
   bindTapToEnter();
   // showMobileToast();
+  // Ensure mobile main menu is visible immediately
+  const mm = document.getElementById('mobile-main-menu');
+  if (mm) mm.style.display = 'flex';
+  const mls = document.getElementById('mobile-level-select');
+  if (mls) mls.style.display = 'none';
+
+  // Fallback: if user taps anywhere and the mobile menus are hidden, show main menu
+  const ensureMenuHandler = (e) => {
+    try {
+      const main = document.getElementById('mobile-main-menu');
+      const lvl = document.getElementById('mobile-level-select');
+      if (main && (main.style.display === 'none' || main.style.display === '')) {
+        // don't interfere if a UI control was tapped
+        const el = e.target;
+        if (el && el.closest && (el.closest('#mobile-utils') || el.closest('#mobile-pause') || el.closest('#mobile-level-select'))) return;
+        main.style.display = 'flex';
+      }
+    } catch (err) {}
+  };
+  window.addEventListener('pointerdown', ensureMenuHandler, { passive: true });
+
   console.log('[mobile-input] mobile UI created');
 
   // Watch game state and create/remove dodge button only when gameplay is active
@@ -420,15 +472,20 @@ function initMobileUI() {
         const g = window.game;
         const exists = !!g;
         if (!exists) return;
-        const inMenu = g.showMainMenu || g.showLevelSelect;
+        const inMain = !!g.showMainMenu;
+        const inLevelSelect = !!g.showLevelSelect;
         const inGameplay = !g.showMainMenu && !g.showLevelSelect;
+
+        // Overlay visibility: prefer DOM overlays for mobile
+        const mainOverlay = document.getElementById('mobile-main-menu');
+        const lvlOverlay = document.getElementById('mobile-level-select');
+        if (mainOverlay) mainOverlay.style.display = inMain ? 'flex' : 'none';
+        if (lvlOverlay) lvlOverlay.style.display = inLevelSelect ? 'flex' : 'none';
+
+        // Dodge button only during gameplay
         const hasDodge = !!document.getElementById('mobile-dodge');
-        if (inGameplay && !hasDodge) {
-          createDodgeButton();
-        }
-        if (!inGameplay && hasDodge) {
-          removeIfExists('mobile-dodge');
-        }
+        if (inGameplay && !hasDodge) createDodgeButton();
+        if (!inGameplay && hasDodge) removeIfExists('mobile-dodge');
       } catch (e) {
         // ignore
       }
