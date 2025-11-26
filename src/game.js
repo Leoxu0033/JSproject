@@ -2322,18 +2322,29 @@ export default class Game {
   
   _initMenuPlayers() {
     this.menuPlayers = [];
-    // Create 2 players
-    const p1 = new Player(100, this.height - 100);
+    
+    // Calculate positions for the toggle button platform
+    const modeY = this.height / 2 + 130;
+    const modeW = 260;
+    const modeX = this.width / 2 - modeW / 2;
+    const sliderW = modeW / 2;
+    
+    // Create 2 players standing on the toggle buttons
+    // P1 on "1 PLAYER" side (Left)
+    const p1 = new Player(modeX + sliderW/2 - 10, modeY - 20);
     p1.color = '#4ade80'; // Green
     p1.isCpu = true;
     p1.cpuTimer = 0;
     p1.cpuActionDuration = 0;
+    p1.startDelay = 1.0; // Wait 1s before moving
     
-    const p2 = new Player(this.width - 100, this.height - 100);
+    // P2 on "2 PLAYERS" side (Right)
+    const p2 = new Player(modeX + sliderW * 1.5 - 10, modeY - 20);
     p2.color = '#ffd166'; // Yellow
     p2.isCpu = true;
     p2.cpuTimer = 0;
     p2.cpuActionDuration = 0;
+    p2.startDelay = 1.0; // Wait 1s before moving
     
     this.menuPlayers.push(p1, p2);
   }
@@ -2343,6 +2354,31 @@ export default class Game {
     
     // Update menu players
     this.menuPlayers.forEach(p => {
+      // Handle start delay
+      if (p.startDelay > 0) {
+        p.startDelay -= dt;
+        p.cpuInput.left = false;
+        p.cpuInput.right = false;
+        p.cpuInput.jump = false;
+        p.cpuInput.dash = false;
+        
+        // Still update physics so they fall/stand
+        p.update(dt, this);
+        
+        // Keep them on the platform during delay
+        const modeY = this.height / 2 + 130;
+        const modeW = 260;
+        const modeX = this.width / 2 - modeW / 2;
+        
+        if (p.pos.y + p.h >= modeY && p.pos.y + p.h <= modeY + 15 &&
+            p.pos.x + p.w > modeX && p.pos.x < modeX + modeW) {
+            p.pos.y = modeY - p.h;
+            p.vel.y = 0;
+            p.onGround = true;
+        }
+        return;
+      }
+
       // Simple AI
       p.cpuTimer -= dt;
       if (p.cpuTimer <= 0) {
@@ -2384,6 +2420,24 @@ export default class Game {
         p.pos.y = groundY - p.h;
         p.vel.y = 0;
         p.onGround = true;
+      }
+
+      // Hidden Platform (Mode Toggle Button)
+      // Allow menu players to stand on the 1P/2P toggle
+      const modeY = this.height / 2 + 130;
+      const modeW = 260;
+      const modeX = this.width / 2 - modeW / 2;
+      
+      // Simple platform collision (one-way from top)
+      if (p.vel.y >= 0 && // Falling
+          p.pos.y + p.h >= modeY && // Feet below top
+          p.pos.y + p.h <= modeY + 15 && // Feet within snap range
+          p.pos.x + p.w > modeX && // Horizontal overlap
+          p.pos.x < modeX + modeW) {
+            
+          p.pos.y = modeY - p.h;
+          p.vel.y = 0;
+          p.onGround = true;
       }
     });
   }
