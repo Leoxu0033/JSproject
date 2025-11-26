@@ -1,12 +1,9 @@
 import Game from './game.js';
 import { levels } from './level.js';
-import { initTouchControls } from './touch.js';
+import { input } from './input.js';
 
 const canvas = document.getElementById('gameCanvas');
 const game = new Game(canvas);
-
-// Initialize touch controls
-initTouchControls(game);
 
 // Start the game loop
 game.start();
@@ -322,3 +319,58 @@ window.addEventListener('keydown', (e) => {
     if (game.audio) game.audio.playSfx('stomp');
   }
 });
+
+// Mobile Controls Wiring
+
+function setupMobileControl(id, keyCodes) {
+  const btn = document.getElementById(id);
+  if (!btn) return;
+  
+  const handleDown = (e) => {
+    e.preventDefault(); // Prevent scrolling/selection
+    keyCodes.forEach(code => input.simulateKey(code, true));
+    btn.classList.add('active');
+    // Haptic feedback if available
+    if (navigator.vibrate) navigator.vibrate(10);
+  };
+  
+  const handleUp = (e) => {
+    e.preventDefault();
+    keyCodes.forEach(code => input.simulateKey(code, false));
+    btn.classList.remove('active');
+  };
+  
+  btn.addEventListener('touchstart', handleDown, { passive: false });
+  btn.addEventListener('touchend', handleUp, { passive: false });
+  btn.addEventListener('touchcancel', handleUp, { passive: false });
+  
+  // Mouse fallback for testing
+  btn.addEventListener('mousedown', handleDown);
+  btn.addEventListener('mouseup', handleUp);
+  btn.addEventListener('mouseleave', handleUp);
+}
+
+setupMobileControl('btn-left', ['ArrowLeft', 'KeyA']);
+setupMobileControl('btn-right', ['ArrowRight', 'KeyD']);
+setupMobileControl('btn-up', ['ArrowUp', 'KeyW']);
+setupMobileControl('btn-down', ['ArrowDown', 'KeyS']);
+setupMobileControl('btn-jump', ['Space', 'KeyW', 'ArrowUp']); // Jump maps to Space/W/Up
+setupMobileControl('btn-dash', ['ShiftLeft', 'KeyK']);
+
+// Pause button
+const btnPause = document.getElementById('btn-pause');
+if (btnPause) {
+  btnPause.addEventListener('click', (e) => {
+    e.preventDefault();
+    game.paused = !game.paused;
+  });
+  btnPause.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    game.paused = !game.paused;
+  }, { passive: false });
+}
+
+// Prevent default touch actions on game canvas to stop scrolling
+canvas.addEventListener('touchstart', (e) => e.preventDefault(), { passive: false });
+canvas.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
+canvas.addEventListener('touchend', (e) => e.preventDefault(), { passive: false });

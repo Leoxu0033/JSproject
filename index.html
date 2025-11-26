@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
     <title>Mini Flat Heroes — Demo</title>
     <link rel="stylesheet" href="styles.css" />
     <!-- Howler is optional; we use Web Audio in src/audio.js but keep Howler CDN if you prefer it -->
@@ -37,25 +37,19 @@
 
       <!-- Mobile Controls -->
       <div id="mobile-controls">
-        <div id="joystick-area">
-          <div id="joystick-base">
-            <div id="joystick-stick"></div>
+        <div id="dpad">
+          <button id="btn-up" class="dpad-btn">▲</button>
+          <div class="dpad-row">
+            <button id="btn-left" class="dpad-btn">◀</button>
+            <button id="btn-right" class="dpad-btn">▶</button>
           </div>
+          <button id="btn-down" class="dpad-btn">▼</button>
         </div>
-        <div id="action-buttons">
-          <div id="btn-dash" class="action-btn">💨</div>
-          <div id="btn-jump" class="action-btn">⬆️</div>
+        <div id="actions">
+          <button id="btn-dash" class="action-btn">DASH</button>
+          <button id="btn-jump" class="action-btn">JUMP</button>
         </div>
-      </div>
-
-      <!-- Mobile Functional Buttons (Column) -->
-      <div id="mobile-ops">
-        <button id="m-pause" class="op-btn">⏸️</button>
-        <button id="m-restart" class="op-btn">🔄</button>
-        <button id="m-style" class="op-btn">🎨</button>
-        <button id="m-mute" class="op-btn">🔊</button>
-        <button id="m-music" class="op-btn">🎵</button>
-        <button id="m-exit" class="op-btn">🚪</button>
+        <button id="btn-pause" class="util-btn">⏸️</button>
       </div>
         
         <!-- overlay for game over with retry button -->

@@ -14,8 +14,7 @@ body{
   display:flex;
   align-items:center;
   justify-content:center;
-  overflow: hidden; /* Prevent scrolling on mobile */
-  touch-action: none; /* Prevent default touch actions */
+  touch-action: none; /* Prevent browser gestures */
 }
 #wrapper{
   position:relative;
@@ -30,7 +29,6 @@ canvas{
   box-shadow:0 6px 30px rgba(0,0,0,0.7);
   width: 100%;
   height: 100%;
-  object-fit: contain;
 }
 
 #level-container {
@@ -199,156 +197,174 @@ canvas{
 
 /* Mobile Controls */
 #mobile-controls {
-  display: none; /* Hidden by default */
-  position: absolute;
+  display: none;
+  position: fixed;
   bottom: 20px;
   left: 0;
   width: 100%;
-  height: 150px;
-  pointer-events: none; /* Let touches pass through to elements */
-  z-index: 20;
+  height: 180px;
+  pointer-events: none;
+  z-index: 100;
+  padding: 0 20px;
+  justify-content: space-between;
 }
 
-#joystick-area {
-  position: absolute;
-  bottom: 20px;
-  left: 40px;
-  width: 120px;
-  height: 120px;
+.dpad-btn, .action-btn, .util-btn {
   pointer-events: auto;
-}
-
-#joystick-base {
-  width: 100%;
-  height: 100%;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.15);
   border: 2px solid rgba(255, 255, 255, 0.3);
+  color: white;
   border-radius: 50%;
-  position: relative;
   backdrop-filter: blur(4px);
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
-#joystick-stick {
+.dpad-btn:active, .action-btn:active, .util-btn:active,
+.dpad-btn.active, .action-btn.active, .util-btn.active {
+  background: rgba(255, 255, 255, 0.4);
+  transform: scale(0.95);
+}
+
+#dpad {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 10px;
+}
+
+.dpad-row {
+  display: flex;
+  gap: 40px;
+}
+
+.dpad-btn {
   width: 50px;
   height: 50px;
-  background: rgba(255, 255, 255, 0.8);
-  border-radius: 50%;
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-#action-buttons {
-  position: absolute;
-  bottom: 20px;
-  right: 40px;
+#actions {
   display: flex;
   gap: 20px;
-  pointer-events: auto;
+  align-items: flex-end;
+  margin-bottom: 20px;
 }
 
 .action-btn {
   width: 70px;
   height: 70px;
-  background: rgba(255, 255, 255, 0.15);
-  border: 2px solid rgba(255, 255, 255, 0.3);
+  font-size: 14px;
+  font-weight: bold;
   border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 28px;
-  backdrop-filter: blur(4px);
-  user-select: none;
-  cursor: pointer;
-}
-
-.action-btn:active {
-  background: rgba(255, 255, 255, 0.4);
-  transform: scale(0.95);
 }
 
 #btn-jump {
-  margin-bottom: 40px; /* Offset for ergonomic feel */
+  background: rgba(74, 222, 128, 0.3);
+  border-color: rgba(74, 222, 128, 0.6);
+  width: 80px;
+  height: 80px;
 }
 
-/* Mobile Ops Column */
-#mobile-ops {
-  display: none;
-  position: absolute;
-  top: 60px;
-  right: 10px;
-  flex-direction: column;
-  gap: 10px;
-  z-index: 20;
+#btn-dash {
+  background: rgba(255, 209, 102, 0.3);
+  border-color: rgba(255, 209, 102, 0.6);
+  margin-bottom: 10px;
 }
 
-.op-btn {
+.util-btn {
+  position: fixed;
+  top: 20px;
+  right: 20px;
   width: 40px;
   height: 40px;
-  background: rgba(15, 23, 36, 0.8);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 8px;
-  color: var(--white);
-  font-size: 18px;
+  font-size: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
-  backdrop-filter: blur(4px);
+  border-radius: 8px;
 }
 
-.op-btn:active {
-  background: rgba(255, 255, 255, 0.2);
-}
-
-/* Media Query for Mobile/Tablet */
-@media (max-width: 900px), (hover: none) {
+/* Responsive Adjustments */
+@media (max-width: 900px) {
+  body {
+    align-items: flex-start;
+    padding-top: 20px;
+    background: #000;
+  }
+  
   #wrapper {
-    width: 100vw;
-    height: 100vh;
-    max-width: none;
-    max-height: none;
-    aspect-ratio: unset; /* Fill screen */
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    aspect-ratio: 3/2;
   }
   
   canvas {
-    object-fit: contain; /* Maintain aspect ratio within viewport */
-  }
-
-  #ops {
-    display: none !important;
-  }
-
-  #mobile-controls {
-    display: block;
-  }
-
-  #mobile-ops {
-    display: flex;
+    border-radius: 0;
+    box-shadow: none;
   }
   
   #hud {
-    left: 10px;
+    position: fixed;
     top: 10px;
+    left: 10px;
+    right: auto;
+    margin: 0;
     flex-direction: row;
     flex-wrap: wrap;
-    margin-left: 0;
-    width: calc(100% - 60px); /* Leave room for ops column */
+    gap: 8px;
+    pointer-events: none;
+    width: calc(100% - 60px); /* Space for pause button */
   }
   
   #hud > div {
     padding: 6px 10px;
     font-size: 12px;
+    background: rgba(0, 0, 0, 0.5);
+    border: none;
   }
   
   .hud-icon { font-size: 16px; }
   .hud-value { font-size: 14px; }
   
+  #ops { display: none; } /* Hide keyboard instructions on mobile */
+  
+  #mobile-controls {
+    display: flex;
+  }
+  
   #level-container {
     top: 50px;
     bottom: auto;
-    font-size: 14px;
+    pointer-events: none;
   }
+  
+  #level {
+    font-size: 14px;
+    opacity: 0.7;
+  }
+  
+  #back-btn {
+    top: 60px;
+    bottom: auto;
+    left: 10px;
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+}
+
+/* Landscape mode on mobile */
+@media (max-height: 500px) and (orientation: landscape) {
+  body { padding: 0; align-items: center; }
+  #wrapper { height: 100vh; width: auto; aspect-ratio: 3/2; max-width: none; }
+  #mobile-controls { bottom: 10px; }
+  .dpad-btn { width: 40px; height: 40px; }
+  .action-btn { width: 60px; height: 60px; }
+  #btn-jump { width: 70px; height: 70px; }
 }
