@@ -460,6 +460,9 @@ function initMobileUI() {
     try {
       const main = document.getElementById('mobile-main-menu');
       const lvl = document.getElementById('mobile-level-select');
+      const g = window.game;
+      // If game exists and we're currently in gameplay, do not show the menu
+      if (g && !g.showMainMenu && !g.showLevelSelect) return;
       if (main && (main.style.display === 'none' || main.style.display === '')) {
         // don't interfere if a UI control was tapped
         const el = e.target;
