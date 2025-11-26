@@ -14,6 +14,8 @@ export default class Game {
     this.height = canvas.height;
     // Tadpole spawn timer
     this._tadpoleTimer = 0;
+    // Special enemy spawn timer
+    this._specialEnemyTimer = 0;
     // Batch spawning: support multiple simultaneous batches
     this._tadpoleBatches = []; // Array of active batches: {location: {x,y}, count: 0, size: N, timer: 0}
     this._tadpoleBatchInterval = 0.15; // Time between tadpoles in a batch
@@ -1188,6 +1190,53 @@ export default class Game {
       }
     }
 
+    // Special Enemy Spawner (Continuous)
+    this._specialEnemyTimer += dt;
+    // Spawn every 5-10 seconds, decreasing with level
+    const specialInterval = Math.max(2.0, 8.0 - (levelNum * 0.5));
+    
+    if (this._specialEnemyTimer >= specialInterval) {
+      this._specialEnemyTimer = 0;
+      
+      // Pick a random type (excluding tadpole)
+      // Weighted random: higher levels unlock harder enemies
+      let availableTypes = ['walker'];
+      if (levelNum >= 2) availableTypes.push('roamer');
+      if (levelNum >= 3) availableTypes.push('jumper');
+      if (levelNum >= 4) availableTypes.push('floater');
+      if (levelNum >= 5) availableTypes.push('chaser');
+      
+      const type = availableTypes[Math.floor(Math.random() * availableTypes.length)];
+      
+      // Spawn at random edge
+      const edge = Math.floor(Math.random() * 4);
+      const wallThickness = 12;
+      const spawnMargin = 40;
+      const groundY = this.currentLevel ? this.currentLevel.groundY : 60;
+      
+      let x, y;
+      if (edge === 0) { // top
+        x = Math.random() * (this.width - 100) + 50;
+        y = wallThickness + spawnMargin;
+      } else if (edge === 1) { // bottom (ground)
+        x = Math.random() * (this.width - 100) + 50;
+        y = this.height - groundY - 40;
+      } else if (edge === 2) { // left
+        x = wallThickness + spawnMargin;
+        y = Math.random() * (this.height - groundY - 100) + 50;
+      } else { // right
+        x = this.width - wallThickness - spawnMargin - 40;
+        y = Math.random() * (this.height - groundY - 100) + 50;
+      }
+      
+      const enemy = new Enemy(x, y, type);
+      this.entities.push(enemy);
+      this.enemies.push(enemy);
+      
+      // Spawn effect
+      this.spawnParticles(x + enemy.w/2, y + enemy.h/2, '#ffcc00', 10);
+    }
+
     // poll gamepads and auto-join players
     if (navigator.getGamepads) {
       const gps = navigator.getGamepads();
@@ -1309,16 +1358,66 @@ export default class Game {
           } else {
             // Non-tadpole enemies: player can kill them by touching (no stomp required)
             en.alive = false;
-            this.score += 100;
             this.audio.playSfx('stomp');
+            
+            // Different effects based on enemy type
+            let scoreBonus = 100;
+            let particleColor = '#ff4d4d';
+            let effectText = '';
+            
+            if (en.type === 'walker') {
+                scoreBonus = 100;
+                particleColor = '#ef5350';
+            } else if (en.type === 'chaser') {
+                scoreBonus = 200;
+                particleColor = '#ffab91';
+                effectText = 'SPEED UP!';
+                // Speed boost
+                p.speedBoostTimer = 5.0;
+            } else if (en.type === 'jumper') {
+                scoreBonus = 150;
+                particleColor = '#ffe082';
+                effectText = 'HIGH JUMP!';
+                // Jump boost
+                p.jumpBoostTimer = 5.0;
+            } else if (en.type === 'roamer') {
+                scoreBonus = 150;
+                particleColor = '#b39ddb';
+                effectText = 'HEAL +1';
+                // Heal
+                const maxLives = this.twoPlayerMode ? 5 : 3;
+                if (this.lives < maxLives) {
+                    this.lives++;
+                    const livesEl = document.getElementById('lives');
+                    if (livesEl) livesEl.innerHTML = `<span class="hud-icon">❤️</span> <span class="hud-value">${this.lives}</span>`;
+                }
+            } else if (en.type === 'floater') {
+                scoreBonus = 300;
+                particleColor = '#81c784';
+                effectText = 'SHIELD!';
+                // Invulnerability
+                p.invulnerable = true;
+                p.invulTimer = 3.0;
+            }
+            
+            this.score += scoreBonus;
+            
+            // Show effect text (using flash color as hint)
+            if (effectText) {
+                this.flash(particleColor, 0.15);
+            } else {
+                this.flash('#ffffff', 0.08);
+            }
+
             // Play score sound for bonus
             setTimeout(() => {
               if (this.audio && this.audio.playSfx) {
                 this.audio.playSfx('score');
               }
             }, 50);
+            
             // spawn particles
-            this.spawnParticles(en.pos.x + en.w / 2, en.pos.y + en.h / 2, '#ff4d4d', 18);
+            this.spawnParticles(en.pos.x + en.w / 2, en.pos.y + en.h / 2, particleColor, 18);
             
             // If player was falling, give a small bounce
             if (p.vel.y > 0) {
@@ -1326,9 +1425,8 @@ export default class Game {
               p.vel.y = -bounce;
             }
             
-            // small screen shake and flash on kill
+            // small screen shake
             this.screenShake(4, 0.15);
-            this.flash('#ffffff', 0.08);
           }
         }
       }

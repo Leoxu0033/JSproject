@@ -231,6 +231,9 @@ canvas.addEventListener('mousemove', (e) => {
   } else if (game.showLevelSelect) {
     const hovering = game.handleLevelSelectMouseMove(x, y);
     canvas.style.cursor = hovering ? 'pointer' : 'default';
+  } else if (game.gameOver) {
+    const hovering = game.handleGameMouseMove(x, y);
+    canvas.style.cursor = hovering ? 'pointer' : 'default';
   } else {
     canvas.style.cursor = 'default';
   }
@@ -247,6 +250,8 @@ canvas.addEventListener('click', (e) => {
     game.handleMenuClick(x, y);
   } else if (game.showLevelSelect) {
     game.handleLevelSelectClick(x, y);
+  } else if (game.gameOver) {
+    game.handleGameClick(x, y);
   }
 });
 

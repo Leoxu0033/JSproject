@@ -7,10 +7,16 @@ export class Player {
     this.w = 34;
     this.h = 34;
     this.vel = { x: 0, y: 0 };
-    this.speed = 380; // px/s (increased for faster feel)
-    this.jumpSpeed = -520;
+    this.baseSpeed = 380; // px/s (increased for faster feel)
+    this.speed = this.baseSpeed;
+    this.baseJumpSpeed = -520;
+    this.jumpSpeed = this.baseJumpSpeed;
     this.onGround = false;
     this.alive = true;
+    
+    // Power-up timers
+    this.speedBoostTimer = 0;
+    this.jumpBoostTimer = 0;
     // use shared input instance
     this.input = input;
     // small coyote time & jump buffer
@@ -70,6 +76,14 @@ export class Player {
   }
 
   update(dt, game) {
+    // Update power-up timers
+    if (this.speedBoostTimer > 0) this.speedBoostTimer -= dt;
+    if (this.jumpBoostTimer > 0) this.jumpBoostTimer -= dt;
+
+    // Apply power-ups
+    this.speed = this.speedBoostTimer > 0 ? this.baseSpeed * 1.5 : this.baseSpeed;
+    this.jumpSpeed = this.jumpBoostTimer > 0 ? this.baseJumpSpeed * 1.25 : this.baseJumpSpeed;
+
     // input: keyboard or gamepad
     let left = false;
     let right = false;
