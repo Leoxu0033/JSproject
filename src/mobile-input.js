@@ -66,7 +66,7 @@ function createJoystick() {
     pointerEvents: 'auto'
   });
   // ensure visible even if CSS has rules
-  joystick.style.display = 'block';
+  joystick.style.display = 'none';
 
   // add an inner knob for visual feedback
   const knob = document.createElement('div');
@@ -90,11 +90,10 @@ function createJoystick() {
   let activePointerId = null;
   let startX = 0;
   let startY = 0;
-  // Follow player settings
-  joystick._follow = true; // enable follow by default on mobile
-  joystick._followSmooth = 0.18; // (kept for possible future smoothing)
-  joystick._targetLeft = 12;
-  joystick._targetTop = window.innerHeight - 132;
+  // The joystick will follow the user's finger, not the player
+  joystick._follow = false;
+  let centerX = 0;
+  let centerY = 0;
 
   function clearDirs() {
     ['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].forEach(k => {
@@ -105,85 +104,104 @@ function createJoystick() {
     if (knob) knob.style.transform = 'translate(-50%, -50%)';
   }
 
-  // Pointer events (preferred) for broader compatibility
-  joystick.addEventListener('pointerdown', e => {
-    activePointerId = e.pointerId;
-    startX = e.clientX; startY = e.clientY;
-    joystick.setPointerCapture && joystick.setPointerCapture(activePointerId);
-    e.preventDefault();
-  });
+  // We'll show the joystick at the user's finger (activation on left half)
+  function showAt(x, y, pointerId) {
+    const jw = parseInt(joystick.style.width) || 120;
+    const jh = parseInt(joystick.style.height) || jw;
+    const left = Math.round(x - jw / 2);
+    const top = Math.round(y - jh / 2);
+    joystick.style.left = `${left}px`;
+    joystick.style.top = `${top}px`;
+    joystick.style.display = 'block';
+    centerX = x; centerY = y;
+    startX = x; startY = y;
+    activePointerId = pointerId;
+    if (knob) knob.style.transform = 'translate(-50%, -50%)';
+  }
 
-  joystick.addEventListener('pointermove', e => {
+  function hideJoystick() {
+    joystick.style.display = 'none';
+    activePointerId = null;
+    clearDirs();
+  }
+
+  // global pointer handlers so the joystick can follow outside its initial bounds
+  document.addEventListener('pointerdown', e => {
+    // Only activate on primary button and on left half of screen
+    if (e.isPrimary !== undefined && !e.isPrimary) return;
+    const target = e.target;
+    if (target && target.closest && (target.closest('#mobile-utils') || target.closest('#mobile-pause') || target.closest('#mobile-dodge') || target.closest('#mobile-main-menu') || target.closest('#mobile-level-select'))) return;
+    if (e.clientX > window.innerWidth * 0.6) return; // prefer left area
+    showAt(e.clientX, e.clientY, e.pointerId);
+    e.preventDefault();
+  }, { passive: false });
+
+  document.addEventListener('pointermove', e => {
     if (activePointerId === null || e.pointerId !== activePointerId) return;
-    const rect = joystick.getBoundingClientRect();
-    const cx = rect.left + rect.width/2;
-    const cy = rect.top + rect.height/2;
+    const jw = joystick.getBoundingClientRect();
+    const cx = centerX;
+    const cy = centerY;
     const dx = e.clientX - cx;
     const dy = e.clientY - cy;
-    const max = rect.width/2 - 10;
-    // move knob visually within max radius
+    const max = (jw.width/2) - 10;
     const dist = Math.hypot(dx, dy);
     const nx = dist > 0 ? dx / dist : 0;
     const ny = dist > 0 ? dy / dist : 0;
-    const limitedDist = Math.min(dist, max);
-    if (knob) knob.style.transform = `translate(calc(-50% + ${nx * limitedDist}px), calc(-50% + ${ny * limitedDist}px))`;
-
+    const limited = Math.min(dist, max);
+    if (knob) knob.style.transform = `translate(calc(-50% + ${nx * limited}px), calc(-50% + ${ny * limited}px))`;
     clearDirs();
-    const dead = 10; // px
+    const dead = 10;
     if (dx < -dead) synthKey('keydown','ArrowLeft',37);
     else if (dx > dead) synthKey('keydown','ArrowRight',39);
     if (dy < -dead) synthKey('keydown','ArrowUp',38);
     else if (dy > dead) synthKey('keydown','ArrowDown',40);
     e.preventDefault();
-  });
+  }, { passive: false });
 
-  joystick.addEventListener('pointerup', e => {
+  document.addEventListener('pointerup', e => {
     if (e.pointerId === activePointerId) {
-      activePointerId = null;
-      clearDirs();
+      hideJoystick();
     }
-    e.preventDefault();
-  });
-
-  // debug logging for touch events (can be removed later)
-  joystick.addEventListener('pointerdown', () => console.log('[mobile-input] joystick pointerdown'));
-  joystick.addEventListener('pointermove', () => console.log('[mobile-input] joystick pointermove'));
-  joystick.addEventListener('pointerup', () => console.log('[mobile-input] joystick pointerup'));
+  }, { passive: false });
 
   // touch fallback
-  joystick.addEventListener('touchstart', e => {
+  document.addEventListener('touchstart', e => {
     const t = e.changedTouches[0];
-    activeId = t.identifier;
-    startX = t.clientX; startY = t.clientY;
-    e.preventDefault();
-  }, { passive: false });
-
-  joystick.addEventListener('touchmove', e => {
-    if (activeId === null) return;
-    const touches = Array.from(e.changedTouches);
-    const t = touches.find(x => x.identifier === activeId);
     if (!t) return;
-    const dx = t.clientX - startX;
-    const dy = t.clientY - startY;
-
-    clearDirs();
-    const threshold = 12; // 像素阈值
-    if (dx < -threshold) synthKey('keydown','ArrowLeft',37);
-    else if (dx > threshold) synthKey('keydown','ArrowRight',39);
-    if (dy < -threshold) synthKey('keydown','ArrowUp',38);
-    else if (dy > threshold) synthKey('keydown','ArrowDown',40);
-
+    const target = e.target;
+    if (target && target.closest && (target.closest('#mobile-utils') || target.closest('#mobile-pause') || target.closest('#mobile-dodge') || target.closest('#mobile-main-menu') || target.closest('#mobile-level-select'))) return;
+    if (t.clientX > window.innerWidth * 0.6) return;
+    showAt(t.clientX, t.clientY, t.identifier);
     e.preventDefault();
   }, { passive: false });
 
-  joystick.addEventListener('touchend', e => {
+  document.addEventListener('touchmove', e => {
+    if (activePointerId === null) return;
     const touches = Array.from(e.changedTouches);
-    const t = touches.find(x => x.identifier === activeId);
-    if (t) {
-      activeId = null;
-      clearDirs();
-    }
+    const t = touches.find(x => x.identifier === activePointerId);
+    if (!t) return;
+    const jw = joystick.getBoundingClientRect();
+    const dx = t.clientX - centerX;
+    const dy = t.clientY - centerY;
+    const max = (jw.width/2) - 10;
+    const dist = Math.hypot(dx, dy);
+    const nx = dist > 0 ? dx / dist : 0;
+    const ny = dist > 0 ? dy / dist : 0;
+    const limited = Math.min(dist, max);
+    if (knob) knob.style.transform = `translate(calc(-50% + ${nx * limited}px), calc(-50% + ${ny * limited}px))`;
+    clearDirs();
+    const dead = 10;
+    if (dx < -dead) synthKey('keydown','ArrowLeft',37);
+    else if (dx > dead) synthKey('keydown','ArrowRight',39);
+    if (dy < -dead) synthKey('keydown','ArrowUp',38);
+    else if (dy > dead) synthKey('keydown','ArrowDown',40);
     e.preventDefault();
+  }, { passive: false });
+
+  document.addEventListener('touchend', e => {
+    const touches = Array.from(e.changedTouches);
+    const t = touches.find(x => x.identifier === activePointerId);
+    if (t) hideJoystick();
   }, { passive: false });
 
   // expose function to update follow position (synchronous, no smoothing)
@@ -573,8 +591,7 @@ function initMobileUI() {
         if (inGameplay && !hasDodge) createDodgeButton();
         if (!inGameplay && hasDodge) removeIfExists('mobile-dodge');
 
-        // Start/stop per-frame follow loop for smooth synchronous movement
-        if (inGameplay) startFollowRaf(); else stopFollowRaf();
+        // Joystick follows user's finger now; no per-frame player-follow loop needed
       } catch (e) {
         // ignore
       }
