@@ -360,10 +360,106 @@ function bindMobileControl(btnId, keyCodes) {
 }
 
 // Bind controls
-bindMobileControl('btn-left', ['ArrowLeft', 'KeyA']);
-bindMobileControl('btn-right', ['ArrowRight', 'KeyD']);
-bindMobileControl('btn-jump', ['ArrowUp', 'Space', 'KeyW']);
 bindMobileControl('btn-dash', ['ShiftLeft', 'KeyK']);
+
+// Joystick Logic
+const joystickArea = document.getElementById('joystick-area');
+const joystickStick = document.getElementById('joystick-stick');
+
+if (joystickArea && joystickStick) {
+  let startX = 0;
+  let startY = 0;
+  let moveX = 0;
+  let moveY = 0;
+  const maxDist = 40; // Max stick movement radius
+
+  const handleJoystick = (active) => {
+    // Reset keys first
+    input.setKey('ArrowLeft', false);
+    input.setKey('ArrowRight', false);
+    input.setKey('ArrowUp', false);
+    input.setKey('ArrowDown', false);
+
+    if (!active) {
+      joystickStick.style.transform = `translate(0px, 0px)`;
+      return;
+    }
+
+    // Update visual stick
+    joystickStick.style.transform = `translate(${moveX}px, ${moveY}px)`;
+
+    // Threshold for activation (deadzone)
+    const threshold = 15;
+
+    if (moveX < -threshold) input.setKey('ArrowLeft', true);
+    if (moveX > threshold) input.setKey('ArrowRight', true);
+    if (moveY < -threshold) input.setKey('ArrowUp', true); // Up is negative Y
+    if (moveY > threshold) input.setKey('ArrowDown', true);
+  };
+
+  joystickArea.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    const touch = e.changedTouches[0];
+    const rect = joystickArea.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    
+    startX = centerX;
+    startY = centerY;
+    
+    // Initial position calculation (in case they tap off-center)
+    let dx = touch.clientX - centerX;
+    let dy = touch.clientY - centerY;
+    
+    // Clamp
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    if (dist > maxDist) {
+      const ratio = maxDist / dist;
+      dx *= ratio;
+      dy *= ratio;
+    }
+    
+    moveX = dx;
+    moveY = dy;
+    handleJoystick(true);
+  }, { passive: false });
+
+  joystickArea.addEventListener('touchmove', (e) => {
+    e.preventDefault();
+    const touch = e.changedTouches[0];
+    
+    // Recalculate based on initial center
+    // We use the rect from start to avoid issues if page scrolls (though it shouldn't)
+    const rect = joystickArea.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+
+    let dx = touch.clientX - centerX;
+    let dy = touch.clientY - centerY;
+
+    // Clamp
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    if (dist > maxDist) {
+      const ratio = maxDist / dist;
+      dx *= ratio;
+      dy *= ratio;
+    }
+
+    moveX = dx;
+    moveY = dy;
+    handleJoystick(true);
+  }, { passive: false });
+
+  const endJoystick = (e) => {
+    e.preventDefault();
+    moveX = 0;
+    moveY = 0;
+    handleJoystick(false);
+  };
+
+  joystickArea.addEventListener('touchend', endJoystick);
+  joystickArea.addEventListener('touchcancel', endJoystick);
+}
 
 // Prevent default touch actions on canvas to stop scrolling/zooming while playing
 canvas.addEventListener('touchstart', (e) => {
