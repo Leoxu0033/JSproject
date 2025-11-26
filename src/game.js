@@ -2763,7 +2763,8 @@ export default class Game {
 
     // 1. Check Back Button (Top Left)
     // Approx bounds: x: 20-100, y: 20-45
-    if (x >= 20 && x <= 100 && y >= 20 && y <= 45) {
+    // Expanded for mobile touch
+    if (x >= 0 && x <= 150 && y >= 0 && y <= 80) {
       hovering = true;
     }
 
@@ -2817,7 +2818,8 @@ export default class Game {
     if (!this.showLevelSelect) return;
 
     // 1. Check Back Button
-    if (x >= 20 && x <= 100 && y >= 20 && y <= 45) {
+    // Expanded for mobile touch
+    if (x >= 0 && x <= 150 && y >= 0 && y <= 80) {
       this.showLevelSelect = false;
       this.showMainMenu = true;
       if (this.audio) this.audio.playSfx('select');

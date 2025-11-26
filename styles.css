@@ -258,31 +258,89 @@ canvas{
   margin-bottom: 30px; /* Align with joystick center roughly */
 }
 
+/* Mobile Utility Menu */
+#mobile-menu-toggle {
+  display: none;
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  width: 40px;
+  height: 40px;
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
+  color: white;
+  font-size: 20px;
+  z-index: 200;
+  backdrop-filter: blur(4px);
+}
+
+#mobile-utility-panel {
+  display: none;
+  position: fixed;
+  top: 60px;
+  right: 10px;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 200;
+}
+
+#mobile-utility-panel button {
+  background: rgba(15, 23, 36, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 14px;
+  text-align: left;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+#mobile-utility-panel button:active {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+#mobile-utility-panel.visible {
+  display: flex;
+}
+
 /* Show mobile controls on touch devices or small screens */
 @media (max-width: 900px), (hover: none) {
   #mobile-controls {
-    display: flex;
+    display: flex; /* Will be toggled by JS based on game state */
   }
   
+  #mobile-menu-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
   /* Adjust HUD for mobile */
   #hud {
-    top: auto;
-    bottom: 100%;
-    left: 0;
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    bottom: auto; /* Reset bottom */
     flex-direction: row;
     flex-wrap: wrap;
-    margin-left: 0;
-    margin-bottom: 10px;
-    width: 100%;
-    justify-content: center;
+    margin: 0;
+    width: auto;
+    max-width: calc(100% - 60px); /* Avoid menu button */
+    justify-content: flex-start;
+    gap: 8px;
+    pointer-events: none;
   }
   
   #hud > div {
-    padding: 6px 10px;
+    padding: 4px 8px;
     font-size: 12px;
+    background: rgba(0, 0, 0, 0.6);
+    border: none;
   }
   
-  .hud-icon { font-size: 16px; }
+  .hud-icon { font-size: 14px; }
   .hud-value { font-size: 14px; }
   
   #ops { display: none !important; } /* Hide instructions on mobile */
@@ -291,5 +349,24 @@ canvas{
     top: 10px;
     bottom: auto;
     left: 10px;
+    z-index: 200; /* Ensure clickable */
+    padding: 8px 16px;
+    font-size: 14px;
+    background: rgba(255, 77, 77, 0.9); /* More visible */
+  }
+
+  /* Larger Dash Button */
+  #btn-dash {
+    width: 80px;
+    height: 80px;
+    font-size: 32px;
+    background: rgba(255, 209, 102, 0.3);
+    border-color: rgba(255, 209, 102, 0.6);
+  }
+  
+  #btn-dash:active, #btn-dash.active {
+    background: rgba(255, 209, 102, 0.6);
+    transform: scale(0.92);
+    box-shadow: 0 0 15px rgba(255, 209, 102, 0.4);
   }
 }

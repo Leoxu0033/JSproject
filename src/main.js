@@ -461,6 +461,102 @@ if (joystickArea && joystickStick) {
   joystickArea.addEventListener('touchcancel', endJoystick);
 }
 
+// Mobile Utility Menu Logic
+const mobileMenuBtn = document.getElementById('mobile-menu-toggle');
+const mobileUtilityPanel = document.getElementById('mobile-utility-panel');
+const mBtnRestart = document.getElementById('m-btn-restart');
+const mBtnPause = document.getElementById('m-btn-pause');
+const mBtnMute = document.getElementById('m-btn-mute');
+const mBtnExit = document.getElementById('m-btn-exit');
+
+if (mobileMenuBtn && mobileUtilityPanel) {
+  mobileMenuBtn.addEventListener('click', (e) => {
+    e.stopPropagation(); // Prevent game click
+    mobileUtilityPanel.classList.toggle('visible');
+    if (navigator.vibrate) navigator.vibrate(10);
+  });
+
+  // Close menu when clicking outside
+  window.addEventListener('click', (e) => {
+    if (mobileUtilityPanel.classList.contains('visible') && 
+        !mobileUtilityPanel.contains(e.target) && 
+        e.target !== mobileMenuBtn) {
+      mobileUtilityPanel.classList.remove('visible');
+    }
+  });
+
+  if (mBtnRestart) {
+    mBtnRestart.addEventListener('click', () => {
+      if (game.won && !game.gameOver) return; // Don't reset during win anim
+      game.reset();
+      mobileUtilityPanel.classList.remove('visible');
+    });
+  }
+
+  if (mBtnPause) {
+    mBtnPause.addEventListener('click', () => {
+      game.paused = !game.paused;
+      mBtnPause.textContent = game.paused ? '▶️ Resume' : '⏸️ Pause';
+      mobileUtilityPanel.classList.remove('visible');
+    });
+  }
+
+  if (mBtnMute) {
+    mBtnMute.addEventListener('click', () => {
+      if (game.audio) {
+        game.audio.toggleMute();
+        mBtnMute.textContent = game.audio.muted ? '🔇 Unmute' : '🔊 Mute';
+      }
+    });
+  }
+
+  if (mBtnExit) {
+    mBtnExit.addEventListener('click', () => {
+      game.showLevelSelect = false;
+      game.showMainMenu = true;
+      game.paused = false;
+      game.gameOver = false;
+      game.won = false;
+      mobileUtilityPanel.classList.remove('visible');
+    });
+  }
+}
+
+// UI Update Loop for Mobile
+function updateMobileUI() {
+  const mobileControls = document.getElementById('mobile-controls');
+  const backBtn = document.getElementById('back-btn');
+  
+  if (mobileControls) {
+    // Only show controls during gameplay (not in menus, not in game over)
+    const isGameplay = !game.showMainMenu && !game.showLevelSelect && !game.gameOver;
+    mobileControls.style.display = isGameplay ? 'flex' : 'none';
+  }
+
+  // Ensure HUD is visible on mobile
+  const hud = document.getElementById('hud');
+  if (hud) {
+    // Hide HUD in main menu and level select
+    const hideHud = game.showMainMenu || game.showLevelSelect;
+    hud.style.display = hideHud ? 'none' : 'flex';
+  }
+  
+  // Back button visibility logic is already in game loop, but we ensure z-index here via CSS
+  
+  requestAnimationFrame(updateMobileUI);
+}
+
+// Start UI loop
+updateMobileUI();
+
+// Add haptic feedback to dash button
+const btnDash = document.getElementById('btn-dash');
+if (btnDash) {
+  btnDash.addEventListener('touchstart', () => {
+    if (navigator.vibrate) navigator.vibrate(20);
+  });
+}
+
 // Prevent default touch actions on canvas to stop scrolling/zooming while playing
 canvas.addEventListener('touchstart', (e) => {
   if (e.target === canvas) {
