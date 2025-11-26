@@ -1,40 +1,49 @@
 // Mobile touch input adapter (方案 A)
-// 在触摸设备上创建虚拟摇杆与按钮，并通过合成 KeyboardEvent 把触摸映射为键盘事件
+// 在触摸设备上创建虚拟摇杆与按钮，并把触摸直接写入共享的 `input` 实例（更可靠）
+import { input } from './input.js';
+
+function codeNameFromKeyCode(keyCode) {
+  const map = {
+    32: 'Space',
+    37: 'ArrowLeft',
+    38: 'ArrowUp',
+    39: 'ArrowRight',
+    40: 'ArrowDown',
+    88: 'KeyX',
+      13: 'Enter',
+    65: 'KeyA',
+    68: 'KeyD',
+    87: 'KeyW',
+    83: 'KeyS',
+    75: 'KeyK',
+    80: 'KeyP',
+    82: 'KeyR',
+    77: 'KeyM',
+    66: 'KeyB',
+    89: 'KeyY',
+    27: 'Escape'
+  };
+  return map[keyCode] || String.fromCharCode(keyCode || 0);
+}
 
 function synthKey(type, key, keyCode) {
-  // Normalize code to match KeyboardEvent.code values used in the game
-  let codeName = key;
-  if (typeof keyCode === 'number') {
-    const map = {
-      32: 'Space',
-      37: 'ArrowLeft',
-      38: 'ArrowUp',
-      39: 'ArrowRight',
-      40: 'ArrowDown',
-      88: 'KeyX',
-      65: 'KeyA',
-      68: 'KeyD',
-      87: 'KeyW',
-      83: 'KeyS',
-      75: 'KeyK',
-      80: 'KeyP',
-      82: 'KeyR',
-      77: 'KeyM',
-      66: 'KeyB',
-      89: 'KeyY',
-      27: 'Escape'
-    };
-    if (map[keyCode]) codeName = map[keyCode];
+  // 更可靠地直接修改共享 input 的 keys 集合
+  const codeName = codeNameFromKeyCode(keyCode);
+  if (type === 'keydown') {
+    input.keys.add(codeName);
+    // also add the readable key (lowercase) for robustness
+    if (key) input.keys.add(String(key));
+  } else if (type === 'keyup') {
+    input.keys.delete(codeName);
+    if (key) input.keys.delete(String(key));
   }
-  const ev = new KeyboardEvent(type, {
-    key,
-    code: codeName,
-    keyCode,
-    which: keyCode,
-    bubbles: true,
-    cancelable: true
-  });
-  window.dispatchEvent(ev);
+  // Also dispatch a KeyboardEvent for any other listeners
+  try {
+    const ev = new KeyboardEvent(type, { key, code: codeName, keyCode, which: keyCode, bubbles: true, cancelable: true });
+    window.dispatchEvent(ev);
+  } catch (e) {
+    // Some browsers restrict synthetic keyboard events; ignore if failed
+  }
 }
 
 function createJoystick() {
@@ -50,11 +59,13 @@ function createJoystick() {
     borderRadius: '50%',
     background: 'rgba(0,0,0,0.18)',
     zIndex: 9999,
-    touchAction: 'none'
+    touchAction: 'none',
+    pointerEvents: 'auto'
   });
   document.body.appendChild(joystick);
 
   let activeId = null;
+  let activePointerId = null;
   let startX = 0;
   let startY = 0;
 
@@ -65,6 +76,36 @@ function createJoystick() {
     });
   }
 
+  // Pointer events (preferred) for broader compatibility
+  joystick.addEventListener('pointerdown', e => {
+    activePointerId = e.pointerId;
+    startX = e.clientX; startY = e.clientY;
+    joystick.setPointerCapture && joystick.setPointerCapture(activePointerId);
+    e.preventDefault();
+  });
+
+  joystick.addEventListener('pointermove', e => {
+    if (activePointerId === null || e.pointerId !== activePointerId) return;
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+    clearDirs();
+    const threshold = 12; // 像素阈值
+    if (dx < -threshold) synthKey('keydown','ArrowLeft',37);
+    else if (dx > threshold) synthKey('keydown','ArrowRight',39);
+    if (dy < -threshold) synthKey('keydown','ArrowUp',38);
+    else if (dy > threshold) synthKey('keydown','ArrowDown',40);
+    e.preventDefault();
+  });
+
+  joystick.addEventListener('pointerup', e => {
+    if (e.pointerId === activePointerId) {
+      activePointerId = null;
+      clearDirs();
+    }
+    e.preventDefault();
+  });
+
+  // touch fallback
   joystick.addEventListener('touchstart', e => {
     const t = e.changedTouches[0];
     activeId = t.identifier;
@@ -101,34 +142,9 @@ function createJoystick() {
   }, { passive: false });
 }
 
+// On mobile we don't create separate A/B action buttons (they were unused)
 function createActionButtons() {
-  const a = document.createElement('button');
-  a.id = 'action-btn-a';
-  a.className = 'action-btn';
-  a.textContent = 'A';
-  a.setAttribute('aria-label','Action A');
-  Object.assign(a.style, {
-    position:'fixed', right:'24px', bottom:'90px', width:'72px', height:'72px',
-    borderRadius:'50%', zIndex:9999, fontSize:'20px', opacity:0.95, touchAction:'none'
-  });
-  document.body.appendChild(a);
-
-  const b = document.createElement('button');
-  b.id = 'action-btn-b';
-  b.className = 'action-btn';
-  b.textContent = 'B';
-  b.setAttribute('aria-label','Action B');
-  Object.assign(b.style, {
-    position:'fixed', right:'110px', bottom:'40px', width:'64px', height:'64px',
-    borderRadius:'50%', zIndex:9999, fontSize:'18px', opacity:0.9, touchAction:'none'
-  });
-  document.body.appendChild(b);
-
-  // 映射：A -> 空格 (32), B -> KeyX (88)
-  a.addEventListener('touchstart', e => { synthKey('keydown',' ',32); e.preventDefault(); }, { passive:false });
-  a.addEventListener('touchend', e => { synthKey('keyup',' ',32); e.preventDefault(); }, { passive:false });
-  b.addEventListener('touchstart', e => { synthKey('keydown','x',88); e.preventDefault(); }, { passive:false });
-  b.addEventListener('touchend', e => { synthKey('keyup','x',88); e.preventDefault(); }, { passive:false });
+  // no-op: taps are treated as 'Enter' and directions handled by joystick
 }
 
 function createQuickControls() {
@@ -136,7 +152,9 @@ function createQuickControls() {
   pause.id = 'mobile-pause';
   pause.textContent = '⏸';
   Object.assign(pause.style, { position:'fixed', right:'12px', top:'12px', zIndex:9999, width:'44px', height:'44px', borderRadius:'8px' });
-  pause.addEventListener('click', () => { synthKey('keydown','p',80); synthKey('keyup','p',80); });
+  const onPause = (e) => { synthKey('keydown','p',80); synthKey('keyup','p',80); e && e.preventDefault(); };
+  pause.addEventListener('pointerdown', onPause);
+  pause.addEventListener('click', onPause);
   document.body.appendChild(pause);
 }
 
@@ -150,7 +168,9 @@ function createUtilityButtons() {
     btn.id = id;
     btn.textContent = label;
     Object.assign(btn.style, { width:'44px', height:'44px', borderRadius:'8px', fontSize:'18px' });
-    btn.addEventListener('touchstart', (e)=>{ synthKey('keydown',String.fromCharCode(keyCode || 0).toLowerCase(), keyCode); synthKey('keyup',String.fromCharCode(keyCode || 0).toLowerCase(), keyCode); e.preventDefault(); }, {passive:false});
+    const handler = (e) => { synthKey('keydown',String.fromCharCode(keyCode || 0).toLowerCase(), keyCode); synthKey('keyup',String.fromCharCode(keyCode || 0).toLowerCase(), keyCode); e && e.preventDefault(); };
+    btn.addEventListener('pointerdown', handler);
+    btn.addEventListener('click', handler);
     container.appendChild(btn);
     return btn;
   };
@@ -165,10 +185,44 @@ function createUtilityButtons() {
   exitBtn.id = 'mobile-exit';
   exitBtn.textContent = '🚪';
   Object.assign(exitBtn.style, { width:'44px', height:'44px', borderRadius:'8px', fontSize:'18px' });
-  exitBtn.addEventListener('touchstart', (e)=>{ synthKey('keydown','Escape',27); synthKey('keyup','Escape',27); e.preventDefault(); }, {passive:false});
+  const onExit = (e) => { synthKey('keydown','Escape',27); synthKey('keyup','Escape',27); e && e.preventDefault(); };
+  exitBtn.addEventListener('pointerdown', onExit);
+  exitBtn.addEventListener('click', onExit);
   container.appendChild(exitBtn);
 
   document.body.appendChild(container);
+}
+
+function showMobileToast() {
+  const t = document.createElement('div');
+  t.id = 'mobile-toast';
+  t.textContent = 'You are playing on a mobile';
+  Object.assign(t.style, {
+    position: 'fixed',
+    left: '50%',
+    transform: 'translateX(-50%)',
+    bottom: '18px',
+    padding: '10px 16px',
+    background: 'rgba(0,0,0,0.7)',
+    color: '#fff',
+    borderRadius: '999px',
+    zIndex: 10000,
+    fontSize: '14px',
+    opacity: '0',
+    transition: 'opacity 300ms ease, transform 300ms ease'
+  });
+  document.body.appendChild(t);
+  // Force reflow then animate in
+  requestAnimationFrame(() => {
+    t.style.opacity = '1';
+    t.style.transform = 'translateX(-50%) translateY(-6px)';
+  });
+  // Hide after 2200ms
+  setTimeout(() => {
+    t.style.opacity = '0';
+    t.style.transform = 'translateX(-50%) translateY(0px)';
+    setTimeout(() => { t.remove(); }, 350);
+  }, 2200);
 }
 
 // 初始化（仅在触摸设备上）
@@ -176,11 +230,31 @@ if (typeof window !== 'undefined') {
     if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
     // 延迟到 DOM ready
     if (document.readyState === 'loading') {
-      window.addEventListener('DOMContentLoaded', () => { createJoystick(); createActionButtons(); createQuickControls(); createUtilityButtons(); });
+      window.addEventListener('DOMContentLoaded', () => { createJoystick(); /*createActionButtons();*/ createQuickControls(); createUtilityButtons(); bindTapToEnter(); showMobileToast(); });
     } else {
-      createJoystick(); createActionButtons(); createQuickControls(); createUtilityButtons();
+      createJoystick(); /*createActionButtons();*/ createQuickControls(); createUtilityButtons(); bindTapToEnter(); showMobileToast();
     }
   }
+}
+
+// 绑定画布或 wrapper 的点击为 Enter（便于从菜单或提示进入游戏）
+function bindTapToEnter() {
+  const canvas = document.getElementById('gameCanvas');
+  const wrapper = document.getElementById('wrapper');
+  const target = canvas || wrapper || document.body;
+  const handler = (e) => {
+    // Ignore taps on UI controls
+    const el = e.target;
+    if (!el) return;
+    if (el.closest && (el.closest('#mobile-utils') || el.closest('#mobile-pause') || el.id === 'mobile-pause')) return;
+    // Synthesize Enter press
+    synthKey('keydown','Enter',13);
+    synthKey('keyup','Enter',13);
+    e && e.preventDefault();
+  };
+  target.addEventListener('pointerdown', handler);
+  // fallback for older touchonly devices
+  target.addEventListener('touchstart', handler, { passive: false });
 }
 
 export {};

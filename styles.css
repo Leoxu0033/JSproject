@@ -166,28 +166,49 @@ canvas{display:block;border-radius:8px;background:#0a0a0a;box-shadow:0 6px 30px 
   touch-action: none; /* 禁用默认手势 */
 }
 
-/* 让画布在小屏设备上按宽度缩放（保持比例） */
+/* Small screens: make canvas responsive while preserving aspect ratio (3:2)
+   and reposition HUD/ops and mobile controls. Desktop styles remain unchanged. */
 @media (max-width: 900px) {
-  #wrapper { width: 100vw; height: calc(100vw * 2 / 3); max-width: 900px; }
-  canvas { width: 100%; height: auto; }
-  #hud { left: unset; right: 8px; top: 8px; margin-left:0; display:flex; gap:8px; flex-direction:column }
-  #ops { margin-top:8px; gap:8px; font-size:12px }
+  html, body { height: 100%; }
+  body { align-items: flex-start; padding: 8px; }
+
+  /* Wrapper scales to viewport width but cap height to viewport to avoid overflow */
+  #wrapper {
+    width: 100vw;
+    max-width: 900px;
+    /* Keep 3:2 aspect but don't exceed available height */
+    height: min(calc(100vw * 2 / 3), calc(100vh - 24px));
+    margin: 0 auto;
+  }
+
+  /* Let the canvas fill wrapper and scale drawing via CSS (game uses fixed internal resolution) */
+  canvas { width: 100%; height: 100%; display: block; }
+
+  /* HUD: compact and move on top-left */
+  #hud { position: absolute; left: 8px; top: 8px; margin-left: 0; display: flex; gap: 8px; flex-direction: column; width: auto; }
+  #hud > div { padding: 8px 10px; font-size: 13px; }
+
+  /* Level label centered at top */
+  #level-container { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); bottom: auto; margin-bottom: 0; }
+  #level { font-size: 16px; }
+
+  /* Ops row placed below canvas inside wrapper area */
+  #ops { position: absolute; bottom: 8px; left: 8px; right: 8px; margin-top: 0; gap: 8px; justify-content: space-between; font-size: 12px; }
+
+  /* Mobile control elements visibility */
+  #virtual-joystick { display: block; }
+  .action-btn { display: none; }
+  #mobile-pause { display: block; }
+  #mobile-utils { display: flex; }
+
+  /* Make touch targets large enough for thumbs */
+  #mobile-utils button, #mobile-pause { min-width: 44px; min-height: 44px; padding: 6px; }
 }
 
-/* 虚拟摇杆与按钮样式（可由 JS 插入元素使用） */
-#virtual-joystick { display:none }
-.action-btn { display:none }
-#mobile-pause { display:none }
+/* Keep mobile-related controls hidden on desktop by default */
+#virtual-joystick { display: none; }
+.action-btn { display: none; }
+#mobile-pause { display: none; }
+#mobile-utils { display: none; }
 
-#mobile-utils { display:none }
-
-@media (max-width: 900px) {
-  #virtual-joystick { display:block }
-  .action-btn { display:block }
-  #mobile-pause { display:block }
-  #mobile-utils { display:flex }
-}
-
-/* 可选：增大按钮点击区域以适配拇指 */
-.action-btn, #action-btn-a, #action-btn-b { min-width:56px; min-height:56px; font-weight:700 }
 
