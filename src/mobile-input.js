@@ -2,6 +2,8 @@
 // 在触摸设备上创建虚拟摇杆与按钮，并把触摸直接写入共享的 `input` 实例（更可靠）
 import { input } from './input.js';
 
+console.log('[mobile-input] module loaded');
+
 function codeNameFromKeyCode(keyCode) {
   const map = {
     32: 'Space',
@@ -225,15 +227,48 @@ function showMobileToast() {
   }, 2200);
 }
 
-// 初始化（仅在触摸设备上）
+// Robust mobile detection and initialization
+function isMobileDevice() {
+  try {
+    const touch = ('ontouchstart' in window) || (navigator.maxTouchPoints && navigator.maxTouchPoints > 0);
+    const coarse = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+    const uaMobile = /Mobi|Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || '');
+    return touch || coarse || uaMobile;
+  } catch (e) {
+    return false;
+  }
+}
+
+function removeIfExists(id) {
+  const el = document.getElementById(id);
+  if (el && el.parentNode) el.parentNode.removeChild(el);
+}
+
+function initMobileUI() {
+  console.log('[mobile-input] initializing mobile UI');
+  // cleanup any previous elements (in case of hot reload or earlier run)
+  ['virtual-joystick','action-btn-a','action-btn-b','mobile-pause','mobile-utils','mobile-toast'].forEach(removeIfExists);
+
+  // create controls
+  createJoystick();
+  // createActionButtons intentionally no-op
+  createQuickControls();
+  createUtilityButtons();
+  bindTapToEnter();
+  showMobileToast();
+  console.log('[mobile-input] mobile UI created');
+}
+
 if (typeof window !== 'undefined') {
-    if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
-    // 延迟到 DOM ready
+  console.log('[mobile-input] runtime detection ->', { userAgent: navigator.userAgent, maxTouchPoints: navigator.maxTouchPoints });
+  if (isMobileDevice()) {
     if (document.readyState === 'loading') {
-      window.addEventListener('DOMContentLoaded', () => { createJoystick(); /*createActionButtons();*/ createQuickControls(); createUtilityButtons(); bindTapToEnter(); showMobileToast(); });
+      window.addEventListener('DOMContentLoaded', initMobileUI);
     } else {
-      createJoystick(); /*createActionButtons();*/ createQuickControls(); createUtilityButtons(); bindTapToEnter(); showMobileToast();
+      initMobileUI();
     }
+  } else {
+    console.log('[mobile-input] device not detected as mobile — mobile UI skipped');
   }
 }
 
