@@ -446,6 +446,15 @@ function initMobileUI() {
   const mls = document.getElementById('mobile-level-select');
   if (mls) mls.style.display = 'none';
 
+  // If game exists, force it into main menu state for mobile UI start
+  try {
+    const g = window.game;
+    if (g) {
+      g.showMainMenu = true;
+      g.showLevelSelect = false;
+    }
+  } catch (err) {}
+
   // Fallback: if user taps anywhere and the mobile menus are hidden, show main menu
   const ensureMenuHandler = (e) => {
     try {
@@ -477,10 +486,23 @@ function initMobileUI() {
         const inGameplay = !g.showMainMenu && !g.showLevelSelect;
 
         // Overlay visibility: prefer DOM overlays for mobile
+
         const mainOverlay = document.getElementById('mobile-main-menu');
         const lvlOverlay = document.getElementById('mobile-level-select');
         if (mainOverlay) mainOverlay.style.display = inMain ? 'flex' : 'none';
         if (lvlOverlay) lvlOverlay.style.display = inLevelSelect ? 'flex' : 'none';
+
+        // Hide canvas while mobile overlays are visible so desktop menu isn't visible underneath
+        try {
+          const canvasEl = document.getElementById('gameCanvas');
+          if (canvasEl) {
+            if ((mainOverlay && mainOverlay.style.display === 'flex') || (lvlOverlay && lvlOverlay.style.display === 'flex')) {
+              canvasEl.style.visibility = 'hidden';
+            } else {
+              canvasEl.style.visibility = '';
+            }
+          }
+        } catch (err) {}
 
         // Dodge button only during gameplay
         const hasDodge = !!document.getElementById('mobile-dodge');
