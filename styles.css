@@ -312,13 +312,15 @@ canvas{
   
   #mobile-tools {
     display: flex; /* Will be toggled by JS based on game state */
+    top: max(10px, env(safe-area-inset-top));
+    right: max(10px, env(safe-area-inset-right));
   }
 
   /* Adjust HUD for mobile */
   #hud {
     position: absolute;
-    top: 10px;
-    left: 10px;
+    top: max(10px, env(safe-area-inset-top));
+    left: max(10px, env(safe-area-inset-left));
     bottom: auto; /* Reset bottom */
     flex-direction: row;
     flex-wrap: wrap;
@@ -333,8 +335,14 @@ canvas{
   #hud > div {
     padding: 4px 8px;
     font-size: 12px;
-    background: rgba(0, 0, 0, 0.6);
+    background: rgba(0, 0, 0, 0.3);
     border: none;
+  }
+
+  /* Move Level Name to bottom on mobile to clear top view */
+  #level-container {
+    top: auto;
+    bottom: 120px;
   }
   
   .hud-icon { font-size: 14px; }
