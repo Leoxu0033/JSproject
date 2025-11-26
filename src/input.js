@@ -12,6 +12,13 @@ class Input {
     });
     // Clear keys when window loses focus to prevent sticky keys
     window.addEventListener('blur', () => this.keys.clear());
+    
+    this.joystick = { x: 0, y: 0 };
+  }
+
+  setButton(code, active) {
+    if (active) this.keys.add(code);
+    else this.keys.delete(code);
   }
 
   isDown(...names) {

@@ -1,8 +1,12 @@
 import Game from './game.js';
 import { levels } from './level.js';
+import { initTouchControls } from './touch.js';
 
 const canvas = document.getElementById('gameCanvas');
 const game = new Game(canvas);
+
+// Initialize touch controls
+initTouchControls(game);
 
 // Start the game loop
 game.start();
