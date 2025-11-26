@@ -14,13 +14,13 @@ body{
   display:flex;
   align-items:center;
   justify-content:center;
-  touch-action: none; /* Prevent browser gestures */
 }
 #wrapper{
   position:relative;
-  width: 100%;
-  max-width: 900px;
-  aspect-ratio: 3/2;
+  width: 900px;
+  height: 600px;
+  max-width: 100%;
+  max-height: 100vh;
 }
 canvas{
   display:block;
@@ -29,6 +29,7 @@ canvas{
   box-shadow:0 6px 30px rgba(0,0,0,0.7);
   width: 100%;
   height: 100%;
+  object-fit: contain;
 }
 
 #level-container {
@@ -198,173 +199,78 @@ canvas{
 /* Mobile Controls */
 #mobile-controls {
   display: none;
-  position: fixed;
+  position: absolute;
   bottom: 20px;
   left: 0;
   width: 100%;
-  height: 180px;
-  pointer-events: none;
-  z-index: 100;
   padding: 0 20px;
   justify-content: space-between;
+  pointer-events: none; /* Let touches pass through container */
+  z-index: 100;
 }
 
-.dpad-btn, .action-btn, .util-btn {
-  pointer-events: auto;
-  background: rgba(255, 255, 255, 0.15);
+.d-pad, .action-buttons {
+  display: flex;
+  gap: 15px;
+  pointer-events: auto; /* Re-enable pointer events for buttons */
+}
+
+.control-btn {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
   border: 2px solid rgba(255, 255, 255, 0.3);
   color: white;
-  border-radius: 50%;
-  backdrop-filter: blur(4px);
-  touch-action: manipulation;
+  font-size: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   user-select: none;
   -webkit-user-select: none;
+  touch-action: manipulation;
+  backdrop-filter: blur(4px);
+  transition: transform 0.1s, background 0.1s;
 }
 
-.dpad-btn:active, .action-btn:active, .util-btn:active,
-.dpad-btn.active, .action-btn.active, .util-btn.active {
+.control-btn:active,
+.control-btn.active {
   background: rgba(255, 255, 255, 0.4);
   transform: scale(0.95);
 }
 
-#dpad {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 5px;
-  margin-bottom: 10px;
-}
-
-.dpad-row {
-  display: flex;
-  gap: 40px;
-}
-
-.dpad-btn {
-  width: 50px;
-  height: 50px;
-  font-size: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-#actions {
-  display: flex;
-  gap: 20px;
-  align-items: flex-end;
-  margin-bottom: 20px;
-}
-
-.action-btn {
-  width: 70px;
-  height: 70px;
-  font-size: 14px;
-  font-weight: bold;
-  border-radius: 50%;
-}
-
-#btn-jump {
-  background: rgba(74, 222, 128, 0.3);
-  border-color: rgba(74, 222, 128, 0.6);
-  width: 80px;
-  height: 80px;
-}
-
-#btn-dash {
-  background: rgba(255, 209, 102, 0.3);
-  border-color: rgba(255, 209, 102, 0.6);
-  margin-bottom: 10px;
-}
-
-.util-btn {
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  width: 40px;
-  height: 40px;
-  font-size: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 8px;
-}
-
-/* Responsive Adjustments */
-@media (max-width: 900px) {
-  body {
-    align-items: flex-start;
-    padding-top: 20px;
-    background: #000;
+/* Show mobile controls on touch devices or small screens */
+@media (max-width: 900px), (hover: none) {
+  #mobile-controls {
+    display: flex;
   }
   
-  #wrapper {
-    width: 100%;
-    max-width: 100%;
-    height: auto;
-    aspect-ratio: 3/2;
-  }
-  
-  canvas {
-    border-radius: 0;
-    box-shadow: none;
-  }
-  
+  /* Adjust HUD for mobile */
   #hud {
-    position: fixed;
-    top: 10px;
-    left: 10px;
-    right: auto;
-    margin: 0;
+    top: auto;
+    bottom: 100%;
+    left: 0;
     flex-direction: row;
     flex-wrap: wrap;
-    gap: 8px;
-    pointer-events: none;
-    width: calc(100% - 60px); /* Space for pause button */
+    margin-left: 0;
+    margin-bottom: 10px;
+    width: 100%;
+    justify-content: center;
   }
   
   #hud > div {
     padding: 6px 10px;
     font-size: 12px;
-    background: rgba(0, 0, 0, 0.5);
-    border: none;
   }
   
   .hud-icon { font-size: 16px; }
   .hud-value { font-size: 14px; }
   
-  #ops { display: none; } /* Hide keyboard instructions on mobile */
-  
-  #mobile-controls {
-    display: flex;
-  }
-  
-  #level-container {
-    top: 50px;
-    bottom: auto;
-    pointer-events: none;
-  }
-  
-  #level {
-    font-size: 14px;
-    opacity: 0.7;
-  }
+  #ops { display: none !important; } /* Hide instructions on mobile */
   
   #back-btn {
-    top: 60px;
+    top: 10px;
     bottom: auto;
     left: 10px;
-    padding: 6px 12px;
-    font-size: 12px;
   }
-}
-
-/* Landscape mode on mobile */
-@media (max-height: 500px) and (orientation: landscape) {
-  body { padding: 0; align-items: center; }
-  #wrapper { height: 100vh; width: auto; aspect-ratio: 3/2; max-width: none; }
-  #mobile-controls { bottom: 10px; }
-  .dpad-btn { width: 40px; height: 40px; }
-  .action-btn { width: 60px; height: 60px; }
-  #btn-jump { width: 70px; height: 70px; }
 }

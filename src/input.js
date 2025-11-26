@@ -14,17 +14,14 @@ class Input {
     window.addEventListener('blur', () => this.keys.clear());
   }
 
+  setKey(code, isDown) {
+    if (isDown) this.keys.add(code);
+    else this.keys.delete(code);
+  }
+
   isDown(...names) {
     for (const n of names) if (this.keys.has(n)) return true;
     return false;
-  }
-
-  simulateKey(code, isDown) {
-    if (isDown) {
-      this.keys.add(code);
-    } else {
-      this.keys.delete(code);
-    }
   }
 }
 

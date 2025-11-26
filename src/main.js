@@ -321,56 +321,74 @@ window.addEventListener('keydown', (e) => {
 });
 
 // Mobile Controls Wiring
-
-function setupMobileControl(id, keyCodes) {
-  const btn = document.getElementById(id);
+function bindMobileControl(btnId, keyCodes) {
+  const btn = document.getElementById(btnId);
   if (!btn) return;
-  
-  const handleDown = (e) => {
+
+  const setKeys = (active) => {
+    keyCodes.forEach(code => input.setKey(code, active));
+  };
+
+  // Touch events
+  btn.addEventListener('touchstart', (e) => {
     e.preventDefault(); // Prevent scrolling/selection
-    keyCodes.forEach(code => input.simulateKey(code, true));
+    setKeys(true);
     btn.classList.add('active');
-    // Haptic feedback if available
-    if (navigator.vibrate) navigator.vibrate(10);
-  };
-  
-  const handleUp = (e) => {
-    e.preventDefault();
-    keyCodes.forEach(code => input.simulateKey(code, false));
-    btn.classList.remove('active');
-  };
-  
-  btn.addEventListener('touchstart', handleDown, { passive: false });
-  btn.addEventListener('touchend', handleUp, { passive: false });
-  btn.addEventListener('touchcancel', handleUp, { passive: false });
-  
-  // Mouse fallback for testing
-  btn.addEventListener('mousedown', handleDown);
-  btn.addEventListener('mouseup', handleUp);
-  btn.addEventListener('mouseleave', handleUp);
-}
-
-setupMobileControl('btn-left', ['ArrowLeft', 'KeyA']);
-setupMobileControl('btn-right', ['ArrowRight', 'KeyD']);
-setupMobileControl('btn-up', ['ArrowUp', 'KeyW']);
-setupMobileControl('btn-down', ['ArrowDown', 'KeyS']);
-setupMobileControl('btn-jump', ['Space', 'KeyW', 'ArrowUp']); // Jump maps to Space/W/Up
-setupMobileControl('btn-dash', ['ShiftLeft', 'KeyK']);
-
-// Pause button
-const btnPause = document.getElementById('btn-pause');
-if (btnPause) {
-  btnPause.addEventListener('click', (e) => {
-    e.preventDefault();
-    game.paused = !game.paused;
-  });
-  btnPause.addEventListener('touchstart', (e) => {
-    e.preventDefault();
-    game.paused = !game.paused;
   }, { passive: false });
+
+  btn.addEventListener('touchend', (e) => {
+    e.preventDefault();
+    setKeys(false);
+    btn.classList.remove('active');
+  });
+
+  // Mouse events (for testing on desktop)
+  btn.addEventListener('mousedown', (e) => {
+    setKeys(true);
+    btn.classList.add('active');
+  });
+  
+  btn.addEventListener('mouseup', () => {
+    setKeys(false);
+    btn.classList.remove('active');
+  });
+  
+  btn.addEventListener('mouseleave', () => {
+    setKeys(false);
+    btn.classList.remove('active');
+  });
 }
 
-// Prevent default touch actions on game canvas to stop scrolling
-canvas.addEventListener('touchstart', (e) => e.preventDefault(), { passive: false });
-canvas.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
-canvas.addEventListener('touchend', (e) => e.preventDefault(), { passive: false });
+// Bind controls
+bindMobileControl('btn-left', ['ArrowLeft', 'KeyA']);
+bindMobileControl('btn-right', ['ArrowRight', 'KeyD']);
+bindMobileControl('btn-jump', ['ArrowUp', 'Space', 'KeyW']);
+bindMobileControl('btn-dash', ['ShiftLeft', 'KeyK']);
+
+// Prevent default touch actions on canvas to stop scrolling/zooming while playing
+canvas.addEventListener('touchstart', (e) => {
+  if (e.target === canvas) {
+    e.preventDefault();
+    // Also handle touch clicks for menu
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = game.width / rect.width;
+    const scaleY = game.height / rect.height;
+    const touch = e.changedTouches[0];
+    const x = (touch.clientX - rect.left) * scaleX;
+    const y = (touch.clientY - rect.top) * scaleY;
+    
+    if (game.showMainMenu) {
+      game.handleMenuClick(x, y);
+    } else if (game.showLevelSelect) {
+      game.handleLevelSelectClick(x, y);
+    } else if (game.gameOver) {
+      game.handleGameClick(x, y);
+    }
+  }
+}, { passive: false });
+
+canvas.addEventListener('touchmove', (e) => {
+  if (e.target === canvas) {
+    e.preventDefault();
+  }
+}, { passive: false });

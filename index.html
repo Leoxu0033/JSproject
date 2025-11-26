@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>Mini Flat Heroes — Demo</title>
     <link rel="stylesheet" href="styles.css" />
     <!-- Howler is optional; we use Web Audio in src/audio.js but keep Howler CDN if you prefer it -->
@@ -34,23 +34,6 @@
         <div id="music-toggle">🎵 Music: On (B)</div>
         <div id="exit">🚪 Exit (ESC)</div>
       </div>
-
-      <!-- Mobile Controls -->
-      <div id="mobile-controls">
-        <div id="dpad">
-          <button id="btn-up" class="dpad-btn">▲</button>
-          <div class="dpad-row">
-            <button id="btn-left" class="dpad-btn">◀</button>
-            <button id="btn-right" class="dpad-btn">▶</button>
-          </div>
-          <button id="btn-down" class="dpad-btn">▼</button>
-        </div>
-        <div id="actions">
-          <button id="btn-dash" class="action-btn">DASH</button>
-          <button id="btn-jump" class="action-btn">JUMP</button>
-        </div>
-        <button id="btn-pause" class="util-btn">⏸️</button>
-      </div>
         
         <!-- overlay for game over with retry button -->
         <div id="overlay" class="overlay" style="display:none;">
@@ -60,6 +43,18 @@
             <div class="overlay-actions">
               <button id="retry-btn">Retry</button>
             </div>
+          </div>
+        </div>
+        
+        <!-- Mobile Controls -->
+        <div id="mobile-controls">
+          <div class="d-pad">
+            <button id="btn-left" class="control-btn">⬅️</button>
+            <button id="btn-right" class="control-btn">➡️</button>
+          </div>
+          <div class="action-buttons">
+            <button id="btn-dash" class="control-btn">💨</button>
+            <button id="btn-jump" class="control-btn">⬆️</button>
           </div>
         </div>
     </div>
