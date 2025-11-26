@@ -56,7 +56,7 @@ function createJoystick() {
   Object.assign(joystick.style, {
     position: 'fixed',
     left: '12px',
-    bottom: '12px',
+    top: 'calc(100% - 132px)',
     width: '120px',
     height: '120px',
     borderRadius: '50%',
@@ -90,6 +90,11 @@ function createJoystick() {
   let activePointerId = null;
   let startX = 0;
   let startY = 0;
+  // Follow player settings
+  joystick._follow = true; // enable follow by default on mobile
+  joystick._followSmooth = 0.18; // smoothing factor
+  joystick._targetLeft = 12;
+  joystick._targetTop = window.innerHeight - 132;
 
   function clearDirs() {
     ['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].forEach(k => {
@@ -180,6 +185,35 @@ function createJoystick() {
     }
     e.preventDefault();
   }, { passive: false });
+
+  // expose function to update follow position
+  joystick.updateFollow = function() {
+    try {
+      if (!joystick._follow) return;
+      const g = window.game;
+      const canvasEl = document.getElementById('gameCanvas');
+      if (!g || !g.players || !g.players[0] || !canvasEl) return;
+      const p = g.players[0];
+      const rect = canvasEl.getBoundingClientRect();
+      // player pos in game coords -> screen coords
+      const px = rect.left + (p.pos.x / canvasEl.width) * rect.width;
+      const py = rect.top + (p.pos.y / canvasEl.height) * rect.height;
+      // target: left to the left of player by a bit, top slightly below player
+      const targetLeft = Math.max(8, Math.min(window.innerWidth - 140, px - 80));
+      const targetTop = Math.max(8, Math.min(window.innerHeight - 140, py + 40));
+      joystick._targetLeft = targetLeft;
+      joystick._targetTop = targetTop;
+      // smoothing
+      const curLeft = parseFloat(joystick.style.left) || 12;
+      const curTop = parseFloat(joystick.style.top) || (window.innerHeight - 132);
+      const nl = curLeft + (joystick._targetLeft - curLeft) * joystick._followSmooth;
+      const nt = curTop + (joystick._targetTop - curTop) * joystick._followSmooth;
+      joystick.style.left = `${Math.round(nl)}px`;
+      joystick.style.top = `${Math.round(nt)}px`;
+    } catch (err) {
+      // ignore
+    }
+  };
 }
 
 // On mobile we don't create separate A/B action buttons (they were unused)
@@ -257,6 +291,13 @@ function createDodgeButton() {
   btn.addEventListener('pointerup', onUp);
   btn.addEventListener('touchstart', onDown, { passive: false });
   btn.addEventListener('touchend', onUp, { passive: false });
+  // Also support quick tap: fire a short keydown->keyup pulse for reliability
+  const onTap = (e) => {
+    synthKey('keydown','k',75);
+    setTimeout(() => synthKey('keyup','k',75), 90);
+    e && e.preventDefault();
+  };
+  btn.addEventListener('click', onTap);
   document.body.appendChild(btn);
   console.log('[mobile-input] dodge button created');
 }
@@ -511,6 +552,12 @@ function initMobileUI() {
         const hasDodge = !!document.getElementById('mobile-dodge');
         if (inGameplay && !hasDodge) createDodgeButton();
         if (!inGameplay && hasDodge) removeIfExists('mobile-dodge');
+
+        // Update joystick follow position if available
+        try {
+          const js = document.getElementById('virtual-joystick');
+          if (js && js.updateFollow) js.updateFollow();
+        } catch (err) {}
       } catch (e) {
         // ignore
       }
