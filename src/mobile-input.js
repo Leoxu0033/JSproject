@@ -94,6 +94,8 @@ function createJoystick() {
   joystick._follow = false;
   let centerX = 0;
   let centerY = 0;
+  let lastX = 0;
+  let lastY = 0;
 
   function clearDirs() {
     ['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].forEach(k => {
@@ -115,6 +117,7 @@ function createJoystick() {
     joystick.style.display = 'block';
     centerX = x; centerY = y;
     startX = x; startY = y;
+    lastX = x; lastY = y;
     activePointerId = pointerId;
     if (knob) knob.style.transform = 'translate(-50%, -50%)';
   }
@@ -131,6 +134,7 @@ function createJoystick() {
     if (e.isPrimary !== undefined && !e.isPrimary) return;
     const target = e.target;
     if (target && target.closest && (target.closest('#mobile-utils') || target.closest('#mobile-pause') || target.closest('#mobile-dodge') || target.closest('#mobile-main-menu') || target.closest('#mobile-level-select'))) return;
+    if (activePointerId !== null) return; // already active, ignore extra downs
     if (e.clientX > window.innerWidth * 0.6) return; // prefer left area
     showAt(e.clientX, e.clientY, e.pointerId);
     e.preventDefault();
@@ -138,23 +142,31 @@ function createJoystick() {
 
   document.addEventListener('pointermove', e => {
     if (activePointerId === null || e.pointerId !== activePointerId) return;
-    const jw = joystick.getBoundingClientRect();
-    const cx = centerX;
-    const cy = centerY;
-    const dx = e.clientX - cx;
-    const dy = e.clientY - cy;
-    const max = (jw.width/2) - 10;
-    const dist = Math.hypot(dx, dy);
-    const nx = dist > 0 ? dx / dist : 0;
-    const ny = dist > 0 ? dy / dist : 0;
-    const limited = Math.min(dist, max);
-    if (knob) knob.style.transform = `translate(calc(-50% + ${nx * limited}px), calc(-50% + ${ny * limited}px))`;
+    const jwRect = joystick.getBoundingClientRect();
+    // Movement delta since last event
+    const dx = e.clientX - lastX;
+    const dy = e.clientY - lastY;
+    // Move base to current finger (base follows finger)
+    const jw = parseInt(joystick.style.width) || jwRect.width || 120;
+    const jh = parseInt(joystick.style.height) || jw;
+    const left = Math.round(e.clientX - jw / 2);
+    const top = Math.round(e.clientY - jh / 2);
+    joystick.style.left = `${left}px`;
+    joystick.style.top = `${top}px`;
+    // Visual knob shows amplified recent delta to indicate direction
+    const max = (jw/2) - 10;
+    const amp = 3.5; // amplify small finger deltas for visibility
+    let kx = Math.max(-max, Math.min(max, dx * amp));
+    let ky = Math.max(-max, Math.min(max, dy * amp));
+    if (knob) knob.style.transform = `translate(calc(-50% + ${kx}px), calc(-50% + ${ky}px))`;
+    // Synthesize directional keys from delta (swipe direction)
     clearDirs();
-    const dead = 10;
+    const dead = 6; // smaller dead-zone for delta-based control
     if (dx < -dead) synthKey('keydown','ArrowLeft',37);
     else if (dx > dead) synthKey('keydown','ArrowRight',39);
     if (dy < -dead) synthKey('keydown','ArrowUp',38);
     else if (dy > dead) synthKey('keydown','ArrowDown',40);
+    lastX = e.clientX; lastY = e.clientY;
     e.preventDefault();
   }, { passive: false });
 
@@ -170,6 +182,7 @@ function createJoystick() {
     if (!t) return;
     const target = e.target;
     if (target && target.closest && (target.closest('#mobile-utils') || target.closest('#mobile-pause') || target.closest('#mobile-dodge') || target.closest('#mobile-main-menu') || target.closest('#mobile-level-select'))) return;
+    if (activePointerId !== null) return; // already active, ignore extra downs
     if (t.clientX > window.innerWidth * 0.6) return;
     showAt(t.clientX, t.clientY, t.identifier);
     e.preventDefault();
@@ -180,21 +193,26 @@ function createJoystick() {
     const touches = Array.from(e.changedTouches);
     const t = touches.find(x => x.identifier === activePointerId);
     if (!t) return;
-    const jw = joystick.getBoundingClientRect();
-    const dx = t.clientX - centerX;
-    const dy = t.clientY - centerY;
-    const max = (jw.width/2) - 10;
-    const dist = Math.hypot(dx, dy);
-    const nx = dist > 0 ? dx / dist : 0;
-    const ny = dist > 0 ? dy / dist : 0;
-    const limited = Math.min(dist, max);
-    if (knob) knob.style.transform = `translate(calc(-50% + ${nx * limited}px), calc(-50% + ${ny * limited}px))`;
+    const dx = t.clientX - lastX;
+    const dy = t.clientY - lastY;
+    const jw = parseInt(joystick.style.width) || joystick.getBoundingClientRect().width || 120;
+    const jh = parseInt(joystick.style.height) || jw;
+    const left = Math.round(t.clientX - jw / 2);
+    const top = Math.round(t.clientY - jh / 2);
+    joystick.style.left = `${left}px`;
+    joystick.style.top = `${top}px`;
+    const max = (jw/2) - 10;
+    const amp = 3.5;
+    let kx = Math.max(-max, Math.min(max, dx * amp));
+    let ky = Math.max(-max, Math.min(max, dy * amp));
+    if (knob) knob.style.transform = `translate(calc(-50% + ${kx}px), calc(-50% + ${ky}px))`;
     clearDirs();
-    const dead = 10;
+    const dead = 6;
     if (dx < -dead) synthKey('keydown','ArrowLeft',37);
     else if (dx > dead) synthKey('keydown','ArrowRight',39);
     if (dy < -dead) synthKey('keydown','ArrowUp',38);
     else if (dy > dead) synthKey('keydown','ArrowDown',40);
+    lastX = t.clientX; lastY = t.clientY;
     e.preventDefault();
   }, { passive: false });
 
