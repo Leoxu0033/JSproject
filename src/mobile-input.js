@@ -520,6 +520,9 @@ function initMobileUI() {
   // Fallback: if user taps anywhere and the mobile menus are hidden, show main menu
   const ensureMenuHandler = (e) => {
     try {
+      // If joystick is currently visible (user touching), don't show the main menu — avoids flicker
+      const vj = document.getElementById('virtual-joystick');
+      if (vj && vj.style && vj.style.display === 'block') return;
       const main = document.getElementById('mobile-main-menu');
       const lvl = document.getElementById('mobile-level-select');
       const g = window.game;
