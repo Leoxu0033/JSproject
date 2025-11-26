@@ -315,10 +315,34 @@ function initMobileUI() {
   createJoystick();
   createQuickControls();
   createUtilityButtons();
-  createDodgeButton();
   bindTapToEnter();
   showMobileToast();
   console.log('[mobile-input] mobile UI created');
+
+  // Watch game state and create/remove dodge button only when gameplay is active
+  let _watchInterval = null;
+  function ensureWatchGame() {
+    if (_watchInterval) return;
+    _watchInterval = setInterval(() => {
+      try {
+        const g = window.game;
+        const exists = !!g;
+        if (!exists) return;
+        const inMenu = g.showMainMenu || g.showLevelSelect;
+        const inGameplay = !g.showMainMenu && !g.showLevelSelect;
+        const hasDodge = !!document.getElementById('mobile-dodge');
+        if (inGameplay && !hasDodge) {
+          createDodgeButton();
+        }
+        if (!inGameplay && hasDodge) {
+          removeIfExists('mobile-dodge');
+        }
+      } catch (e) {
+        // ignore
+      }
+    }, 300);
+  }
+  ensureWatchGame();
 }
 
 if (typeof window !== 'undefined') {

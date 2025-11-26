@@ -3,6 +3,8 @@ import { levels } from './level.js';
 
 const canvas = document.getElementById('gameCanvas');
 const game = new Game(canvas);
+// Expose game for external adapters (mobile-input) to inspect state
+window.game = game;
 
 // Mobile detection: force single-player mode on touch devices
 const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints && navigator.maxTouchPoints > 0);
