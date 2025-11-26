@@ -2,9 +2,33 @@
 // 在触摸设备上创建虚拟摇杆与按钮，并通过合成 KeyboardEvent 把触摸映射为键盘事件
 
 function synthKey(type, key, keyCode) {
+  // Normalize code to match KeyboardEvent.code values used in the game
+  let codeName = key;
+  if (typeof keyCode === 'number') {
+    const map = {
+      32: 'Space',
+      37: 'ArrowLeft',
+      38: 'ArrowUp',
+      39: 'ArrowRight',
+      40: 'ArrowDown',
+      88: 'KeyX',
+      65: 'KeyA',
+      68: 'KeyD',
+      87: 'KeyW',
+      83: 'KeyS',
+      75: 'KeyK',
+      80: 'KeyP',
+      82: 'KeyR',
+      77: 'KeyM',
+      66: 'KeyB',
+      89: 'KeyY',
+      27: 'Escape'
+    };
+    if (map[keyCode]) codeName = map[keyCode];
+  }
   const ev = new KeyboardEvent(type, {
     key,
-    code: key,
+    code: codeName,
     keyCode,
     which: keyCode,
     bubbles: true,
@@ -116,14 +140,45 @@ function createQuickControls() {
   document.body.appendChild(pause);
 }
 
+function createUtilityButtons() {
+  const container = document.createElement('div');
+  container.id = 'mobile-utils';
+  Object.assign(container.style, { position:'fixed', left:'12px', top:'12px', zIndex:9999, display:'flex', gap:'8px' });
+
+  const makeBtn = (id, label, keyCode) => {
+    const btn = document.createElement('button');
+    btn.id = id;
+    btn.textContent = label;
+    Object.assign(btn.style, { width:'44px', height:'44px', borderRadius:'8px', fontSize:'18px' });
+    btn.addEventListener('touchstart', (e)=>{ synthKey('keydown',String.fromCharCode(keyCode || 0).toLowerCase(), keyCode); synthKey('keyup',String.fromCharCode(keyCode || 0).toLowerCase(), keyCode); e.preventDefault(); }, {passive:false});
+    container.appendChild(btn);
+    return btn;
+  };
+
+  // Restart (R), Mute (M), Music (B), Style (Y), Exit (Escape)
+  makeBtn('mobile-restart','⟲',82);
+  makeBtn('mobile-mute','🔊',77);
+  makeBtn('mobile-music','🎵',66);
+  makeBtn('mobile-style','🎨',89);
+  // Exit should send Escape
+  const exitBtn = document.createElement('button');
+  exitBtn.id = 'mobile-exit';
+  exitBtn.textContent = '🚪';
+  Object.assign(exitBtn.style, { width:'44px', height:'44px', borderRadius:'8px', fontSize:'18px' });
+  exitBtn.addEventListener('touchstart', (e)=>{ synthKey('keydown','Escape',27); synthKey('keyup','Escape',27); e.preventDefault(); }, {passive:false});
+  container.appendChild(exitBtn);
+
+  document.body.appendChild(container);
+}
+
 // 初始化（仅在触摸设备上）
 if (typeof window !== 'undefined') {
-  if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+    if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
     // 延迟到 DOM ready
     if (document.readyState === 'loading') {
-      window.addEventListener('DOMContentLoaded', () => { createJoystick(); createActionButtons(); createQuickControls(); });
+      window.addEventListener('DOMContentLoaded', () => { createJoystick(); createActionButtons(); createQuickControls(); createUtilityButtons(); });
     } else {
-      createJoystick(); createActionButtons(); createQuickControls();
+      createJoystick(); createActionButtons(); createQuickControls(); createUtilityButtons();
     }
   }
 }

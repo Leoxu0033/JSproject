@@ -179,10 +179,13 @@ canvas{display:block;border-radius:8px;background:#0a0a0a;box-shadow:0 6px 30px 
 .action-btn { display:none }
 #mobile-pause { display:none }
 
+#mobile-utils { display:none }
+
 @media (max-width: 900px) {
   #virtual-joystick { display:block }
   .action-btn { display:block }
   #mobile-pause { display:block }
+  #mobile-utils { display:flex }
 }
 
 /* 可选：增大按钮点击区域以适配拇指 */

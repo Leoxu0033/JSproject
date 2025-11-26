@@ -4,6 +4,15 @@ import { levels } from './level.js';
 const canvas = document.getElementById('gameCanvas');
 const game = new Game(canvas);
 
+// Mobile detection: force single-player mode on touch devices
+const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints && navigator.maxTouchPoints > 0);
+if (isTouchDevice) {
+  game.twoPlayerMode = false;
+  game.mobile = true;
+} else {
+  game.mobile = false;
+}
+
 // Start the game loop
 game.start();
 
@@ -20,11 +29,16 @@ if (btnSingle) {
   });
 }
 if (btnTwo) {
-  btnTwo.addEventListener('click', () => {
-    game.startTwoPlayer();
-    if (mainMenuEl) mainMenuEl.style.display = 'none';
-    game.selectedLevelIndex = 1; // Start from Level 1
-  });
+  // Hide or disable two-player start on mobile
+  if (game.mobile) {
+    btnTwo.style.display = 'none';
+  } else {
+    btnTwo.addEventListener('click', () => {
+      game.startTwoPlayer();
+      if (mainMenuEl) mainMenuEl.style.display = 'none';
+      game.selectedLevelIndex = 1; // Start from Level 1
+    });
+  }
 }
 
 // Hotkeys
@@ -70,9 +84,11 @@ window.addEventListener('keydown', (e) => {
       return;
     }
     if (e.key === 'Tab') {
-      // Toggle 1P/2P mode
-      game.twoPlayerMode = !game.twoPlayerMode;
-      if (game.audio) game.audio.playSfx('select');
+      // Toggle 1P/2P mode (disabled on mobile)
+      if (!game.mobile) {
+        game.twoPlayerMode = !game.twoPlayerMode;
+        if (game.audio) game.audio.playSfx('select');
+      }
       e.preventDefault();
       return;
     }
@@ -122,9 +138,11 @@ window.addEventListener('keydown', (e) => {
       return;
     }
     if (e.key === 'Tab') {
-      // Toggle 1P/2P mode
-      game.twoPlayerMode = !game.twoPlayerMode;
-      if (game.audio) game.audio.playSfx('select');
+      // Toggle 1P/2P mode (disabled on mobile)
+      if (!game.mobile) {
+        game.twoPlayerMode = !game.twoPlayerMode;
+        if (game.audio) game.audio.playSfx('select');
+      }
       e.preventDefault();
       return;
     }
