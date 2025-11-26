@@ -462,10 +462,19 @@ if (joystickArea && joystickStick) {
 }
 
 // Mobile Tools Logic
+const mtRestart = document.getElementById('mt-restart');
 const mtPause = document.getElementById('mt-pause');
 const mtStyle = document.getElementById('mt-style');
 const mtMute = document.getElementById('mt-mute');
 const mtExit = document.getElementById('mt-exit');
+
+if (mtRestart) {
+  mtRestart.addEventListener('click', () => {
+    if (game.won && !game.gameOver) return; // Don't reset during win anim
+    game.reset();
+    if (navigator.vibrate) navigator.vibrate(10);
+  });
+}
 
 if (mtPause) {
   mtPause.addEventListener('click', () => {
