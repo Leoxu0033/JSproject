@@ -532,8 +532,15 @@ if (mtMute) {
 
 if (mtExit) {
   mtExit.addEventListener('click', () => {
-    game.showLevelSelect = false;
-    game.showMainMenu = true;
+    // If in Tutorial (Level 0), go back to Main Menu
+    if (game.currentLevelIndex === 0) {
+      game.showLevelSelect = false;
+      game.showMainMenu = true;
+    } else {
+      // Otherwise go to Level Select
+      game.showLevelSelect = true;
+      game.showMainMenu = false;
+    }
     game.paused = false;
     game.gameOver = false;
     game.won = false;
