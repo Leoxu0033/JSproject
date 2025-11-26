@@ -119,8 +119,9 @@ export default class Game {
     this.playerColors = ['#ffffff', '#ffd166', '#06d6a0', '#ef476f', '#118ab2'];
     
     // Background Style
-    this.bgStyle = 2; // 0: Neon, 1: Cyber-Nature, 2: Nature, 3: Underwater, 4: Space
-    this.bgStyles = ['Neon', 'Cyber', 'Nature', 'Underwater', 'Space'];
+    this.bgStyle = 5; // 0: Neon, 1: Cyber-Nature, 2: Nature, 3: Underwater, 4: Space, 5: Random
+    this.bgStyles = ['Neon', 'Cyber', 'Nature', 'Underwater', 'Space', 'Random'];
+    this.currentLevelStyle = this.bgStyle; // The actual style used for the current level
     
     // Background Scenery
     this.scenery = [];
@@ -287,13 +288,15 @@ export default class Game {
     // Reset level state
     this.currentLevelIndex = levelIndex;
     
-    // Force Neon style for Tutorial Level (Index 0) for better text visibility
+    // Determine style for this level
     if (this.currentLevelIndex === 0) {
-      this.bgStyle = 0; // Neon
-      // Update UI label
-      const styleEl = document.getElementById('style-toggle');
-      if (styleEl) {
-        styleEl.textContent = `🎨 Style: ${this.bgStyles[this.bgStyle]} (Y)`;
+      this.currentLevelStyle = 0; // Force Neon for Tutorial
+    } else {
+      if (this.bgStyle === 5) { // Random
+         // Pick random from 0-4
+         this.currentLevelStyle = Math.floor(Math.random() * 5);
+      } else {
+         this.currentLevelStyle = this.bgStyle;
       }
     }
 
@@ -436,10 +439,10 @@ export default class Game {
     this.scenery = [];
     const bottom = this.height;
     
-    if (this.bgStyle === 0) {
+    if (this.currentLevelStyle === 0) {
       // Neon Style: No scenery, just grid
       return;
-    } else if (this.bgStyle === 1) {
+    } else if (this.currentLevelStyle === 1) {
       // Cyber-Nature Style
       // Mountains (Background)
       const numMountains = 3 + Math.floor(Math.random() * 3);
@@ -488,7 +491,7 @@ export default class Game {
           color: Math.random() > 0.5 ? '#4ade80' : '#f472b6' // Green or Pink
         });
       }
-    } else if (this.bgStyle === 2) {
+    } else if (this.currentLevelStyle === 2) {
       // Nature Style
       // Distant Mountains (Green/Blue)
       const numMountains = 3 + Math.floor(Math.random() * 3);
@@ -537,7 +540,7 @@ export default class Game {
           color: Math.random() > 0.5 ? '#52b788' : '#ffadad' // Green or Pink Flower
         });
       }
-    } else if (this.bgStyle === 3) {
+    } else if (this.currentLevelStyle === 3) {
       // Underwater Style
       // Seaweed (Tall wavy plants)
       const numSeaweed = 15 + Math.floor(Math.random() * 10);
@@ -585,7 +588,7 @@ export default class Game {
           color: Math.random() > 0.5 ? '#ff7675' : '#fab1a0' // Pink/Peach
         });
       }
-    } else if (this.bgStyle === 4) {
+    } else if (this.currentLevelStyle === 4) {
       // Space Style
       // Distant Stars
       const numStars = 50 + Math.floor(Math.random() * 50);
@@ -1512,7 +1515,7 @@ export default class Game {
     // --- Background ---
     let bgGradient;
     
-    if (this.bgStyle === 0) {
+    if (this.currentLevelStyle === 0) {
       // Neon Style
       bgGradient = ctx.createRadialGradient(
         this.width / 2, this.height / 2, 0,
@@ -1520,7 +1523,7 @@ export default class Game {
       );
       bgGradient.addColorStop(0, '#1e293b'); // Lighter center
       bgGradient.addColorStop(1, '#0f172a'); // Darker corners
-    } else if (this.bgStyle === 1) {
+    } else if (this.currentLevelStyle === 1) {
       // Cyber-Nature Style
       bgGradient = ctx.createRadialGradient(
         this.width / 2, this.height / 2, 0,
@@ -1528,18 +1531,18 @@ export default class Game {
       );
       bgGradient.addColorStop(0, '#1e293b'); // Lighter center
       bgGradient.addColorStop(1, '#0f172a'); // Darker corners
-    } else if (this.bgStyle === 2) {
+    } else if (this.currentLevelStyle === 2) {
       // Nature Style (Qingshan Lushui)
       bgGradient = ctx.createLinearGradient(0, 0, 0, this.height);
       bgGradient.addColorStop(0, '#87CEEB'); // Sky Blue
       bgGradient.addColorStop(0.6, '#E0F7FA'); // Light Cyan (Horizon)
       bgGradient.addColorStop(1, '#4FC3F7'); // Water reflection hint
-    } else if (this.bgStyle === 3) {
+    } else if (this.currentLevelStyle === 3) {
       // Underwater Style
       bgGradient = ctx.createLinearGradient(0, 0, 0, this.height);
       bgGradient.addColorStop(0, '#0984e3'); // Deep Blue Surface
       bgGradient.addColorStop(1, '#2d3436'); // Dark Depths
-    } else if (this.bgStyle === 4) {
+    } else if (this.currentLevelStyle === 4) {
       // Space Style
       bgGradient = ctx.createRadialGradient(
         this.width / 2, this.height / 2, 0,
@@ -1557,11 +1560,11 @@ export default class Game {
     
     // Grid effect with drift
     ctx.save();
-    if (this.bgStyle === 2) {
+    if (this.currentLevelStyle === 2) {
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)'; // Subtle white for Nature
-    } else if (this.bgStyle === 3) {
+    } else if (this.currentLevelStyle === 3) {
       ctx.strokeStyle = 'rgba(129, 236, 236, 0.1)'; // Faint Cyan for Underwater
-    } else if (this.bgStyle === 4) {
+    } else if (this.currentLevelStyle === 4) {
       ctx.strokeStyle = 'rgba(162, 155, 254, 0.1)'; // Faint Purple for Space
     } else {
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.04)'; // Faint for Neon/Cyber
@@ -2101,10 +2104,16 @@ export default class Game {
         bgGrad = ctx.createLinearGradient(0, 0, 0, this.height);
         bgGrad.addColorStop(0, '#0984e3');
         bgGrad.addColorStop(1, '#000000');
-    } else { // Space
+    } else if (this.bgStyle === 4) { // Space
         bgGrad = ctx.createRadialGradient(this.width/2, this.height/2, 0, this.width/2, this.height/2, this.width);
         bgGrad.addColorStop(0, '#1e293b');
         bgGrad.addColorStop(1, '#020617');
+    } else { // Random
+        // Shifting gradient
+        const hue = (time * 20) % 360;
+        bgGrad = ctx.createLinearGradient(0, 0, this.width, this.height);
+        bgGrad.addColorStop(0, `hsl(${hue}, 40%, 20%)`);
+        bgGrad.addColorStop(1, `hsl(${(hue + 60) % 360}, 40%, 10%)`);
     }
     ctx.fillStyle = bgGrad;
     ctx.fillRect(0, 0, this.width, this.height);
