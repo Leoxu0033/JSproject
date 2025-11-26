@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
     <title>Mini Flat Heroes — Demo</title>
     <link rel="stylesheet" href="styles.css" />
     <!-- Howler is optional; we use Web Audio in src/audio.js but keep Howler CDN if you prefer it -->
@@ -46,17 +46,18 @@
           </div>
         </div>
         
-        <!-- Mobile Controls -->
-        <div id="mobile-controls">
-          <div id="joystick-area">
-            <div id="joystick-base">
-              <div id="joystick-stick"></div>
-            </div>
-          </div>
-          <div class="action-buttons">
-            <button id="btn-dash" class="control-btn">💨</button>
-          </div>
+    </div>
+
+    <!-- Mobile Controls -->
+    <div id="mobile-controls">
+      <div id="joystick-area">
+        <div id="joystick-base">
+          <div id="joystick-stick"></div>
         </div>
+      </div>
+      <div class="action-buttons">
+        <button id="btn-dash" class="control-btn">💨</button>
+      </div>
     </div>
 
     <script type="module" src="src/main.js"></script>

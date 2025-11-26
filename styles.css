@@ -14,6 +14,8 @@ body{
   display:flex;
   align-items:center;
   justify-content:center;
+  overflow: hidden; /* Prevent scrolling */
+  touch-action: none; /* Prevent browser gestures */
 }
 #wrapper{
   position:relative;
@@ -21,6 +23,7 @@ body{
   height: 600px;
   max-width: 100%;
   max-height: 100vh;
+  max-height: 100dvh; /* Use dynamic viewport height if supported */
 }
 canvas{
   display:block;
@@ -199,14 +202,17 @@ canvas{
 /* Mobile Controls */
 #mobile-controls {
   display: none;
-  position: absolute;
+  position: fixed; /* Fixed to screen, not wrapper */
   bottom: 20px;
   left: 0;
   width: 100%;
-  padding: 0 40px; /* Increased padding for joystick space */
+  padding: 0 40px;
+  padding-bottom: env(safe-area-inset-bottom, 20px); /* Handle iPhone home bar */
+  padding-left: max(40px, env(safe-area-inset-left)); /* Handle notch in landscape */
+  padding-right: max(40px, env(safe-area-inset-right)); /* Handle notch in landscape */
   justify-content: space-between;
-  align-items: flex-end; /* Align bottom */
-  pointer-events: none; /* Let touches pass through container */
+  align-items: flex-end;
+  pointer-events: none;
   z-index: 100;
 }
 
