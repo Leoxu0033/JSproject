@@ -365,6 +365,7 @@ bindMobileControl('btn-dash', ['ShiftLeft', 'KeyK']);
 // Joystick Logic
 const joystickArea = document.getElementById('joystick-area');
 const joystickStick = document.getElementById('joystick-stick');
+const joystickBase = document.getElementById('joystick-base');
 
 if (joystickArea && joystickStick) {
   let startX = 0;
@@ -400,42 +401,32 @@ if (joystickArea && joystickStick) {
   joystickArea.addEventListener('touchstart', (e) => {
     e.preventDefault();
     const touch = e.changedTouches[0];
-    const rect = joystickArea.getBoundingClientRect();
-    const centerX = rect.left + rect.width / 2;
-    const centerY = rect.top + rect.height / 2;
     
-    startX = centerX;
-    startY = centerY;
+    // Set start position to touch position (Dynamic Origin)
+    startX = touch.clientX;
+    startY = touch.clientY;
     
-    // Initial position calculation (in case they tap off-center)
-    let dx = touch.clientX - centerX;
-    let dy = touch.clientY - centerY;
-    
-    // Clamp
-    const dist = Math.sqrt(dx*dx + dy*dy);
-    if (dist > maxDist) {
-      const ratio = maxDist / dist;
-      dx *= ratio;
-      dy *= ratio;
+    // Move base to touch position
+    if (joystickBase) {
+      joystickBase.style.left = `${startX}px`;
+      joystickBase.style.top = `${startY}px`;
+      joystickBase.classList.add('visible');
     }
     
-    moveX = dx;
-    moveY = dy;
+    moveX = 0;
+    moveY = 0;
     handleJoystick(true);
+    
+    if (navigator.vibrate) navigator.vibrate(10);
   }, { passive: false });
 
   joystickArea.addEventListener('touchmove', (e) => {
     e.preventDefault();
     const touch = e.changedTouches[0];
     
-    // Recalculate based on initial center
-    // We use the rect from start to avoid issues if page scrolls (though it shouldn't)
-    const rect = joystickArea.getBoundingClientRect();
-    const centerX = rect.left + rect.width / 2;
-    const centerY = rect.top + rect.height / 2;
-
-    let dx = touch.clientX - centerX;
-    let dy = touch.clientY - centerY;
+    // Calculate delta from start position
+    let dx = touch.clientX - startX;
+    let dy = touch.clientY - startY;
 
     // Clamp
     const dist = Math.sqrt(dx*dx + dy*dy);
@@ -455,6 +446,9 @@ if (joystickArea && joystickStick) {
     moveX = 0;
     moveY = 0;
     handleJoystick(false);
+    if (joystickBase) {
+      joystickBase.classList.remove('visible');
+    }
   };
 
   joystickArea.addEventListener('touchend', endJoystick);
