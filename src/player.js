@@ -364,7 +364,7 @@ export class Player {
               this.vel.y = 0;
               this.onGround = true;
               onSlopeSurface = true;
-            } else if (foot >= slopeTop - 8 && foot <= slopeTop + 8) {
+            } else if (foot >= slopeTop - 8 && foot <= slopeTop + 8 && this.vel.y >= 0) {
               // Player is already on slope surface (within tolerance)
               // Also snap to surface if close enough
               if (Math.abs(foot - slopeTop) < 5) {
@@ -374,6 +374,20 @@ export class Player {
               this.onGround = true;
               onSlopeSurface = true;
             }
+          }
+          
+          // Check for ceiling collision (hitting bottom of slope from below)
+          if (this.vel.y < 0) {
+             const objBottom = obj.y + obj.h;
+             // Check if player head is crossing the bottom line
+             // Use a small tolerance
+             if (this.pos.y < objBottom && prev.y >= objBottom - 5) {
+                 // Check horizontal overlap
+                 if (this.pos.x + pw > objLeft && this.pos.x < objRight) {
+                     this.pos.y = objBottom;
+                     this.vel.y = 0;
+                 }
+             }
           }
           
           // Only handle horizontal collision if player is NOT on the slope surface
