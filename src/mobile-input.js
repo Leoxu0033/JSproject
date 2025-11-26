@@ -92,7 +92,7 @@ function createJoystick() {
   let startY = 0;
   // Follow player settings
   joystick._follow = true; // enable follow by default on mobile
-  joystick._followSmooth = 0.18; // smoothing factor
+  joystick._followSmooth = 0.18; // (kept for possible future smoothing)
   joystick._targetLeft = 12;
   joystick._targetTop = window.innerHeight - 132;
 
@@ -186,7 +186,7 @@ function createJoystick() {
     e.preventDefault();
   }, { passive: false });
 
-  // expose function to update follow position
+  // expose function to update follow position (synchronous, no smoothing)
   joystick.updateFollow = function() {
     try {
       if (!joystick._follow) return;
@@ -198,18 +198,16 @@ function createJoystick() {
       // player pos in game coords -> screen coords
       const px = rect.left + (p.pos.x / canvasEl.width) * rect.width;
       const py = rect.top + (p.pos.y / canvasEl.height) * rect.height;
-      // target: left to the left of player by a bit, top slightly below player
-      const targetLeft = Math.max(8, Math.min(window.innerWidth - 140, px - 80));
-      const targetTop = Math.max(8, Math.min(window.innerHeight - 140, py + 40));
-      joystick._targetLeft = targetLeft;
-      joystick._targetTop = targetTop;
-      // smoothing
-      const curLeft = parseFloat(joystick.style.left) || 12;
-      const curTop = parseFloat(joystick.style.top) || (window.innerHeight - 132);
-      const nl = curLeft + (joystick._targetLeft - curLeft) * joystick._followSmooth;
-      const nt = curTop + (joystick._targetTop - curTop) * joystick._followSmooth;
-      joystick.style.left = `${Math.round(nl)}px`;
-      joystick.style.top = `${Math.round(nt)}px`;
+      // Anchor joystick near player: left of player by joystick width + 8, vertically centered at player
+      const jw = parseInt(joystick.style.width) || rect.width * 0.12 || 120;
+      const jh = parseInt(joystick.style.height) || jw;
+      let left = Math.round(px - jw - 12);
+      let top = Math.round(py - jh/2);
+      // keep on-screen
+      left = Math.max(8, Math.min(window.innerWidth - jw - 8, left));
+      top = Math.max(8, Math.min(window.innerHeight - jh - 8, top));
+      joystick.style.left = `${left}px`;
+      joystick.style.top = `${top}px`;
     } catch (err) {
       // ignore
     }
@@ -285,16 +283,21 @@ function createDodgeButton() {
     color: '#fff',
     fontSize: '14px'
   });
+  // add smooth visual feedback for presses
+  btn.style.transition = 'transform 140ms cubic-bezier(.2,.9,.3,1), background 140ms ease';
   const onDown = (e) => { synthKey('keydown','k',75); e && e.preventDefault(); };
   const onUp = (e) => { synthKey('keyup','k',75); e && e.preventDefault(); };
-  btn.addEventListener('pointerdown', onDown);
-  btn.addEventListener('pointerup', onUp);
-  btn.addEventListener('touchstart', onDown, { passive: false });
-  btn.addEventListener('touchend', onUp, { passive: false });
+  btn.addEventListener('pointerdown', (e) => { try { btn.style.transform = 'scale(0.92)'; btn.style.background = 'rgba(255,255,255,0.14)'; } catch(_){}; onDown(e); });
+  btn.addEventListener('pointerup', (e) => { try { btn.style.transform = ''; btn.style.background = 'rgba(255,255,255,0.08)'; } catch(_){}; onUp(e); });
+  btn.addEventListener('touchstart', (e) => { try { btn.style.transform = 'scale(0.92)'; btn.style.background = 'rgba(255,255,255,0.14)'; } catch(_){}; onDown(e); }, { passive: false });
+  btn.addEventListener('touchend', (e) => { try { btn.style.transform = ''; btn.style.background = 'rgba(255,255,255,0.08)'; } catch(_){}; onUp(e); }, { passive: false });
   // Also support quick tap: fire a short keydown->keyup pulse for reliability
   const onTap = (e) => {
+    // visual pulse
+    try { btn.style.transform = 'scale(0.88)'; btn.style.background = 'rgba(255,255,255,0.16)'; } catch (_) {}
     synthKey('keydown','k',75);
     setTimeout(() => synthKey('keyup','k',75), 90);
+    setTimeout(() => { try { btn.style.transform = ''; btn.style.background = 'rgba(255,255,255,0.08)'; } catch(_){} }, 160);
     e && e.preventDefault();
   };
   btn.addEventListener('click', onTap);
@@ -518,6 +521,23 @@ function initMobileUI() {
 
   // Watch game state and create/remove dodge button only when gameplay is active
   let _watchInterval = null;
+  let _followRaf = null;
+  function startFollowRaf() {
+    if (_followRaf) return;
+    const loop = () => {
+      try {
+        const js = document.getElementById('virtual-joystick');
+        const g = window.game;
+        if (js && js.updateFollow && g && !g.showMainMenu && !g.showLevelSelect) js.updateFollow();
+      } catch (e) {}
+      _followRaf = requestAnimationFrame(loop);
+    };
+    _followRaf = requestAnimationFrame(loop);
+  }
+  function stopFollowRaf() {
+    if (_followRaf) cancelAnimationFrame(_followRaf);
+    _followRaf = null;
+  }
   function ensureWatchGame() {
     if (_watchInterval) return;
     _watchInterval = setInterval(() => {
@@ -553,11 +573,8 @@ function initMobileUI() {
         if (inGameplay && !hasDodge) createDodgeButton();
         if (!inGameplay && hasDodge) removeIfExists('mobile-dodge');
 
-        // Update joystick follow position if available
-        try {
-          const js = document.getElementById('virtual-joystick');
-          if (js && js.updateFollow) js.updateFollow();
-        } catch (err) {}
+        // Start/stop per-frame follow loop for smooth synchronous movement
+        if (inGameplay) startFollowRaf(); else stopFollowRaf();
       } catch (e) {
         // ignore
       }
