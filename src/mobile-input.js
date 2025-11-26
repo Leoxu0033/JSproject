@@ -62,7 +62,26 @@ function createJoystick() {
     touchAction: 'none',
     pointerEvents: 'auto'
   });
+  // ensure visible even if CSS has rules
+  joystick.style.display = 'block';
+
+  // add an inner knob for visual feedback
+  const knob = document.createElement('div');
+  knob.id = 'virtual-joystick-knob';
+  Object.assign(knob.style, {
+    position: 'absolute',
+    left: '50%',
+    top: '50%',
+    transform: 'translate(-50%, -50%)',
+    width: '44px',
+    height: '44px',
+    borderRadius: '50%',
+    background: 'rgba(255,255,255,0.12)',
+    border: '2px solid rgba(255,255,255,0.12)'
+  });
+  joystick.appendChild(knob);
   document.body.appendChild(joystick);
+  console.log('[mobile-input] joystick created');
 
   let activeId = null;
   let activePointerId = null;
@@ -74,6 +93,8 @@ function createJoystick() {
       const codeMap = { ArrowLeft:37, ArrowRight:39, ArrowUp:38, ArrowDown:40 };
       synthKey('keyup', k, codeMap[k]);
     });
+    // reset knob visual
+    if (knob) knob.style.transform = 'translate(-50%, -50%)';
   }
 
   // Pointer events (preferred) for broader compatibility
@@ -86,14 +107,25 @@ function createJoystick() {
 
   joystick.addEventListener('pointermove', e => {
     if (activePointerId === null || e.pointerId !== activePointerId) return;
-    const dx = e.clientX - startX;
-    const dy = e.clientY - startY;
+    const rect = joystick.getBoundingClientRect();
+    const cx = rect.left + rect.width/2;
+    const cy = rect.top + rect.height/2;
+    const dx = e.clientX - cx;
+    const dy = e.clientY - cy;
+    const max = rect.width/2 - 10;
+    // move knob visually within max radius
+    const dist = Math.hypot(dx, dy);
+    const nx = dist > 0 ? dx / dist : 0;
+    const ny = dist > 0 ? dy / dist : 0;
+    const limitedDist = Math.min(dist, max);
+    if (knob) knob.style.transform = `translate(calc(-50% + ${nx * limitedDist}px), calc(-50% + ${ny * limitedDist}px))`;
+
     clearDirs();
-    const threshold = 12; // 像素阈值
-    if (dx < -threshold) synthKey('keydown','ArrowLeft',37);
-    else if (dx > threshold) synthKey('keydown','ArrowRight',39);
-    if (dy < -threshold) synthKey('keydown','ArrowUp',38);
-    else if (dy > threshold) synthKey('keydown','ArrowDown',40);
+    const dead = 10; // px
+    if (dx < -dead) synthKey('keydown','ArrowLeft',37);
+    else if (dx > dead) synthKey('keydown','ArrowRight',39);
+    if (dy < -dead) synthKey('keydown','ArrowUp',38);
+    else if (dy > dead) synthKey('keydown','ArrowDown',40);
     e.preventDefault();
   });
 
@@ -104,6 +136,11 @@ function createJoystick() {
     }
     e.preventDefault();
   });
+
+  // debug logging for touch events (can be removed later)
+  joystick.addEventListener('pointerdown', () => console.log('[mobile-input] joystick pointerdown'));
+  joystick.addEventListener('pointermove', () => console.log('[mobile-input] joystick pointermove'));
+  joystick.addEventListener('pointerup', () => console.log('[mobile-input] joystick pointerup'));
 
   // touch fallback
   joystick.addEventListener('touchstart', e => {
@@ -193,6 +230,34 @@ function createUtilityButtons() {
   document.body.appendChild(container);
 }
 
+function createDodgeButton() {
+  // Create a dodge button mapped to KeyK (75)
+  removeIfExists && removeIfExists('mobile-dodge');
+  const btn = document.createElement('button');
+  btn.id = 'mobile-dodge';
+  btn.textContent = '闪避';
+  Object.assign(btn.style, {
+    position: 'fixed',
+    right: '24px',
+    bottom: '20px',
+    zIndex: 10001,
+    width: '64px',
+    height: '44px',
+    borderRadius: '8px',
+    background: 'rgba(255,255,255,0.08)',
+    color: '#fff',
+    fontSize: '14px'
+  });
+  const onDown = (e) => { synthKey('keydown','k',75); e && e.preventDefault(); };
+  const onUp = (e) => { synthKey('keyup','k',75); e && e.preventDefault(); };
+  btn.addEventListener('pointerdown', onDown);
+  btn.addEventListener('pointerup', onUp);
+  btn.addEventListener('touchstart', onDown, { passive: false });
+  btn.addEventListener('touchend', onUp, { passive: false });
+  document.body.appendChild(btn);
+  console.log('[mobile-input] dodge button created');
+}
+
 function showMobileToast() {
   const t = document.createElement('div');
   t.id = 'mobile-toast';
@@ -225,15 +290,42 @@ function showMobileToast() {
   }, 2200);
 }
 
-// 初始化（仅在触摸设备上）
+// Robust mobile detection and initialization
+function isMobileDevice() {
+  try {
+    const touch = ('ontouchstart' in window) || (navigator.maxTouchPoints && navigator.maxTouchPoints > 0);
+    const coarse = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+    const uaMobile = /Mobi|Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || '');
+    return touch || coarse || uaMobile;
+  } catch (e) {
+    return false;
+  }
+}
+
+function removeIfExists(id) {
+  const el = document.getElementById(id);
+  if (el && el.parentNode) el.parentNode.removeChild(el);
+}
+
+function initMobileUI() {
+  console.log('[mobile-input] initializing mobile UI');
+  ['virtual-joystick','action-btn-a','action-btn-b','mobile-pause','mobile-utils','mobile-toast','mobile-dodge'].forEach(removeIfExists);
+  createJoystick();
+  createQuickControls();
+  createUtilityButtons();
+  createDodgeButton();
+  bindTapToEnter();
+  showMobileToast();
+  console.log('[mobile-input] mobile UI created');
+}
+
 if (typeof window !== 'undefined') {
-    if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
-    // 延迟到 DOM ready
-    if (document.readyState === 'loading') {
-      window.addEventListener('DOMContentLoaded', () => { createJoystick(); /*createActionButtons();*/ createQuickControls(); createUtilityButtons(); bindTapToEnter(); showMobileToast(); });
-    } else {
-      createJoystick(); /*createActionButtons();*/ createQuickControls(); createUtilityButtons(); bindTapToEnter(); showMobileToast();
-    }
+  console.log('[mobile-input] runtime detection ->', { ua: navigator.userAgent, maxTouchPoints: navigator.maxTouchPoints });
+  if (isMobileDevice()) {
+    if (document.readyState === 'loading') window.addEventListener('DOMContentLoaded', initMobileUI);
+    else initMobileUI();
+  } else {
+    console.log('[mobile-input] device not detected as mobile — mobile UI skipped');
   }
 }
 
