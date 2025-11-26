@@ -217,6 +217,61 @@ window.addEventListener('keydown', (e) => {
   }
 });
 
+// Mouse interaction for Main Menu & Level Select
+canvas.addEventListener('mousemove', (e) => {
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = game.width / rect.width;
+  const scaleY = game.height / rect.height;
+  const x = (e.clientX - rect.left) * scaleX;
+  const y = (e.clientY - rect.top) * scaleY;
+
+  if (game.showMainMenu) {
+    const hovering = game.handleMenuMouseMove(x, y);
+    canvas.style.cursor = hovering ? 'pointer' : 'default';
+  } else if (game.showLevelSelect) {
+    const hovering = game.handleLevelSelectMouseMove(x, y);
+    canvas.style.cursor = hovering ? 'pointer' : 'default';
+  } else {
+    canvas.style.cursor = 'default';
+  }
+});
+
+canvas.addEventListener('click', (e) => {
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = game.width / rect.width;
+  const scaleY = game.height / rect.height;
+  const x = (e.clientX - rect.left) * scaleX;
+  const y = (e.clientY - rect.top) * scaleY;
+
+  if (game.showMainMenu) {
+    game.handleMenuClick(x, y);
+  } else if (game.showLevelSelect) {
+    game.handleLevelSelectClick(x, y);
+  }
+});
+
+// Back button wiring
+const backBtn = document.getElementById('back-btn');
+if (backBtn) {
+  backBtn.addEventListener('click', () => {
+    // If in Tutorial (Level 0), go back to Main Menu
+    if (game.currentLevelIndex === 0) {
+      game.showLevelSelect = false;
+      game.showMainMenu = true;
+    } else {
+      // Otherwise go to Level Select
+      game.showLevelSelect = true;
+    }
+    game.paused = false;
+    game.gameOver = false;
+    game.won = false;
+    if (game.audio) game.audio.playSfx('select');
+    
+    // Hide button immediately (will be handled by game loop anyway)
+    backBtn.style.display = 'none';
+  });
+}
+
 // dash via keyboard: Shift (edge-detected)
 let _globalPrevDash = false;
 window.addEventListener('keydown', (e) => {

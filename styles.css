@@ -160,3 +160,28 @@ canvas{display:block;border-radius:8px;background:#0a0a0a;box-shadow:0 6px 30px 
   color: #fff;
   text-shadow: 0 2px 0 rgba(0,0,0,0.2);
 }
+
+#back-btn {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  margin-bottom: 12px;
+  background: rgba(15, 23, 36, 0.8);
+  color: var(--white);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-weight: 700;
+  cursor: pointer;
+  backdrop-filter: blur(4px);
+  transition: all 0.2s ease;
+  font-family: inherit;
+  display: none; /* Controlled by JS */
+  z-index: 10;
+}
+
+#back-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}

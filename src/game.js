@@ -1492,9 +1492,11 @@ export default class Game {
     const hudEl = document.getElementById('hud');
     const opsEl = document.getElementById('ops');
     const levelContainerEl = document.getElementById('level-container');
+    const backBtn = document.getElementById('back-btn');
     if (hudEl) hudEl.style.display = '';
     if (opsEl) opsEl.style.display = '';
     if (levelContainerEl) levelContainerEl.style.display = '';
+    if (backBtn) backBtn.style.display = 'block';
 
     // update screen shake offsets
     if (this.shakeTimer > 0) {
@@ -1923,15 +1925,48 @@ export default class Game {
     }
     
     if (this.gameOver && !this.won) {
-      ctx.fillStyle = 'rgba(0,0,0,0.6)';
+      // Dark Overlay
+      ctx.fillStyle = 'rgba(0,0,0,0.7)';
       ctx.fillRect(0, 0, this.width, this.height);
-      ctx.fillStyle = '#fff';
-      ctx.font = '36px sans-serif';
+      
+      // Game Over Text
+      ctx.save();
+      ctx.shadowColor = '#ff4d4d';
+      ctx.shadowBlur = 20;
+      ctx.fillStyle = '#ff4d4d';
+      ctx.font = '900 64px "Arial Black", sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText('Game Over', this.width / 2, this.height / 2 - 30);
-      ctx.font = '20px sans-serif';
-      ctx.fillStyle = '#fff';
-      ctx.fillText('Press R to restart • Press ESC to return to level select', this.width / 2, this.height / 2 + 20);
+      ctx.textBaseline = 'middle';
+      ctx.fillText('GAME OVER', this.width / 2, this.height / 2 - 80);
+      ctx.restore();
+
+      // Buttons
+      const btnW = 200;
+      const btnH = 50;
+      const btnX = this.width / 2 - btnW / 2;
+      
+      // RESTART Button
+      const restartY = this.height / 2 + 10;
+      ctx.fillStyle = '#4ade80';
+      ctx.beginPath();
+      ctx.roundRect(btnX, restartY, btnW, btnH, 10);
+      ctx.fill();
+      
+      ctx.fillStyle = '#0f172a';
+      ctx.font = 'bold 20px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('RESTART (R)', this.width / 2, restartY + btnH / 2);
+      
+      // BACK Button
+      const backY = restartY + btnH + 20;
+      ctx.fillStyle = '#94a3b8';
+      ctx.beginPath();
+      ctx.roundRect(btnX, backY, btnW, btnH, 10);
+      ctx.fill();
+      
+      ctx.fillStyle = '#0f172a';
+      ctx.fillText('BACK (ESC)', this.width / 2, backY + btnH / 2);
     } else if (this.gameOver && this.won && this.allLevelsCompleted()) {
       // Hide HUD and OPS elements when showing final completion screen
       const hudEl = document.getElementById('hud');
@@ -2077,15 +2112,14 @@ export default class Game {
     const hudEl = document.getElementById('hud');
     const opsEl = document.getElementById('ops');
     const levelContainerEl = document.getElementById('level-container');
+    const backBtn = document.getElementById('back-btn');
     if (hudEl) hudEl.style.display = 'none';
     if (opsEl) opsEl.style.display = 'none';
     if (levelContainerEl) levelContainerEl.style.display = 'none';
-    
-    // Update total score from high scores (in case it changed)
-    this.totalScore = this.calculateTotalScore();
-    
+    if (backBtn) backBtn.style.display = 'none';
+
     const time = performance.now() / 1000;
-    
+
     // 1. Dynamic Background based on Style
     let bgGrad;
     if (this.bgStyle === 0) { // Neon
@@ -2100,7 +2134,8 @@ export default class Game {
         bgGrad = ctx.createLinearGradient(0, 0, 0, this.height);
         bgGrad.addColorStop(0, '#87CEEB');
         bgGrad.addColorStop(1, '#E0F7FA');
-    } else if (this.bgStyle === 3) { // Underwater
+    } else if (this.bgStyle === 3) {
+        // Underwater
         bgGrad = ctx.createLinearGradient(0, 0, 0, this.height);
         bgGrad.addColorStop(0, '#0984e3');
         bgGrad.addColorStop(1, '#000000');
@@ -2216,11 +2251,16 @@ export default class Game {
     ctx.shadowColor = '#4ade80';
     ctx.shadowBlur = 20;
     ctx.fillStyle = '#fff';
-    ctx.font = 'bold 40px sans-serif';
+    ctx.font = '900 48px "Arial Black", sans-serif'; // Thicker, more impactful font
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText('SELECT LEVEL', this.width / 2, titleY);
     ctx.shadowBlur = 0;
+    
+    // Style Indicator (Below Title)
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+    ctx.font = 'bold 16px sans-serif';
+    ctx.fillText(`🎨 Style: ${this.bgStyles[this.bgStyle]} (Y)`, this.width / 2, titleY + 40);
     ctx.restore();
     
     // Total Score Pill (Top Right)
@@ -2286,13 +2326,13 @@ export default class Game {
     ctx.font = '13px sans-serif';
     ctx.fillText('Arrows/WASD: Move • Enter: Select • TAB: Toggle Mode', this.width / 2, modeY + modeH + 20);
     
-    // Style Indicator (Top Left)
+    // Back Button (Top Left)
     ctx.save();
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
     ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
     ctx.font = 'bold 16px sans-serif';
-    ctx.fillText(`🎨 Style: ${this.bgStyles[this.bgStyle]} (Y)`, 20, 20);
+    ctx.fillText('⬅ BACK', 20, 20);
     ctx.restore();
 
     // 4. Level Grid
@@ -2539,14 +2579,276 @@ export default class Game {
     });
   }
   
+  handleMenuMouseMove(x, y) {
+    if (!this.showMainMenu) return false;
+
+    let hovering = false;
+
+    // Check Menu Options
+    const options = ['START GAME', 'TUTORIAL'];
+    const startY = this.height / 2 + 10;
+    const gap = 50;
+    
+    for (let i = 0; i < options.length; i++) {
+      const optY = startY + i * gap;
+      // Approximate text bounds (centered)
+      const halfW = 120; // 240px wide
+      const halfH = 20;  // 40px high
+      
+      if (x >= this.width / 2 - halfW && x <= this.width / 2 + halfW &&
+          y >= optY - halfH && y <= optY + halfH) {
+        this.mainMenuSelection = i;
+        hovering = true;
+      }
+    }
+
+    // Check Mode Toggle
+    const modeY = this.height / 2 + 130;
+    const modeW = 260;
+    const modeH = 36;
+    const modeX = this.width / 2 - modeW / 2;
+
+    if (x >= modeX && x <= modeX + modeW &&
+        y >= modeY && y <= modeY + modeH) {
+      hovering = true;
+    }
+
+    return hovering;
+  }
+
+  handleMenuClick(x, y) {
+    if (!this.showMainMenu) return;
+
+    // Check Menu Options
+    const options = ['START GAME', 'TUTORIAL'];
+    const startY = this.height / 2 + 10;
+    const gap = 50;
+    
+    for (let i = 0; i < options.length; i++) {
+      const optY = startY + i * gap;
+      const halfW = 120;
+      const halfH = 20;
+      
+      if (x >= this.width / 2 - halfW && x <= this.width / 2 + halfW &&
+          y >= optY - halfH && y <= optY + halfH) {
+        // Execute selection
+        if (i === 0) { // START GAME
+           this.showMainMenu = false;
+           this.showLevelSelect = true;
+           if (this.audio) this.audio.playSfx('select');
+        } else if (i === 1) { // TUTORIAL
+           this.showMainMenu = false;
+           this.loadLevel(0);
+           if (this.audio) this.audio.playSfx('select');
+        }
+        return;
+      }
+    }
+
+    // Check Mode Toggle
+    const modeY = this.height / 2 + 130;
+    const modeW = 260;
+    const modeH = 36;
+    const modeX = this.width / 2 - modeW / 2;
+
+    if (x >= modeX && x <= modeX + modeW &&
+        y >= modeY && y <= modeY + modeH) {
+      this.twoPlayerMode = !this.twoPlayerMode;
+      if (this.audio) this.audio.playSfx('select');
+    }
+  }
+  
+  handleLevelSelectMouseMove(x, y) {
+    if (!this.showLevelSelect) return false;
+    
+    let hovering = false;
+
+    // 1. Check Back Button (Top Left)
+    // Approx bounds: x: 20-100, y: 20-45
+    if (x >= 20 && x <= 100 && y >= 20 && y <= 45) {
+      hovering = true;
+    }
+
+    // 2. Check Style Toggle (Center, below title)
+    // Approx bounds: x: width/2 - 100, width/2 + 100, y: 65-95 (titleY=40 + 40 offset approx)
+    const titleY = 40;
+    const styleY = titleY + 40;
+    if (x >= this.width/2 - 100 && x <= this.width/2 + 100 && y >= styleY - 15 && y <= styleY + 15) {
+      hovering = true;
+    }
+
+    // 3. Check Mode Toggle
+    const modeY = 100;
+    const modeW = 300;
+    const modeH = 36;
+    const modeX = this.width / 2 - modeW / 2;
+    
+    if (x >= modeX && x <= modeX + modeW &&
+        y >= modeY && y <= modeY + modeH) {
+      hovering = true;
+    }
+
+    // 4. Check Level Cards
+    const cols = 3;
+    const cardW = 260;
+    const cardH = 120;
+    const gap = 20;
+    const gridW = cols * cardW + (cols - 1) * gap;
+    const startX = (this.width - gridW) / 2;
+    const startY = 180;
+
+    for (let i = 1; i < levels.length; i++) {
+      const gridIndex = i - 1;
+      const col = gridIndex % cols;
+      const row = Math.floor(gridIndex / cols);
+      
+      const cx = startX + col * (cardW + gap);
+      const cy = startY + row * (cardH + gap);
+      
+      if (x >= cx && x <= cx + cardW &&
+          y >= cy && y <= cy + cardH) {
+        this.selectedLevelIndex = i;
+        hovering = true;
+      }
+    }
+
+    return hovering;
+  }
+
+  handleLevelSelectClick(x, y) {
+    if (!this.showLevelSelect) return;
+
+    // 1. Check Back Button
+    if (x >= 20 && x <= 100 && y >= 20 && y <= 45) {
+      this.showLevelSelect = false;
+      this.showMainMenu = true;
+      if (this.audio) this.audio.playSfx('select');
+      return;
+    }
+
+    // 2. Check Style Toggle
+    const titleY = 40;
+    const styleY = titleY + 40;
+    if (x >= this.width/2 - 100 && x <= this.width/2 + 100 && y >= styleY - 15 && y <= styleY + 15) {
+      this.bgStyle = (this.bgStyle + 1) % this.bgStyles.length;
+      if (this.audio) this.audio.playSfx('select');
+      return;
+    }
+
+    // 3. Check Mode Toggle
+    const modeY = 100;
+    const modeW = 300;
+    const modeH = 36;
+    const modeX = this.width / 2 - modeW / 2;
+    
+    if (x >= modeX && x <= modeX + modeW &&
+        y >= modeY && y <= modeY + modeH) {
+      this.twoPlayerMode = !this.twoPlayerMode;
+      if (this.audio) this.audio.playSfx('select');
+      return;
+    }
+
+    // 4. Check Level Cards
+    const cols = 3;
+    const cardW = 260;
+    const cardH = 120;
+    const gap = 20;
+    const gridW = cols * cardW + (cols - 1) * gap;
+    const startX = (this.width - gridW) / 2;
+    const startY = 180;
+
+    for (let i = 1; i < levels.length; i++) {
+      const gridIndex = i - 1;
+      const col = gridIndex % cols;
+      const row = Math.floor(gridIndex / cols);
+      
+      const cx = startX + col * (cardW + gap);
+      const cy = startY + row * (cardH + gap);
+      
+      if (x >= cx && x <= cx + cardW &&
+          y >= cy && y <= cy + cardH) {
+        // Start Level
+        if (this.audio) {
+            this.audio.resume();
+            this.audio.playSfx('select');
+        }
+        this.currentLevelIndex = i;
+        this.score = 0;
+        this.levelStartScore = 0;
+        this.loadLevel(i);
+        return;
+      }
+    }
+  }
+
+  handleGameClick(x, y) {
+    if (this.showMainMenu || this.showLevelSelect) return;
+
+    // Game Over Screen Buttons
+    if (this.gameOver && !this.won) {
+      const btnW = 200;
+      const btnH = 50;
+      const btnX = this.width / 2 - btnW / 2;
+      
+      // Restart (R)
+      const restartY = this.height / 2 + 10;
+      if (x >= btnX && x <= btnX + btnW && y >= restartY && y <= restartY + btnH) {
+        this.reset();
+        if (this.audio) this.audio.playSfx('select');
+        return;
+      }
+      
+      // Back (ESC)
+      const backY = this.height / 2 + 80;
+      if (x >= btnX && x <= btnX + btnW && y >= backY && y <= backY + btnH) {
+        if (this.currentLevelIndex === 0) {
+          this.showLevelSelect = false;
+          this.showMainMenu = true;
+        } else {
+          this.showLevelSelect = true;
+        }
+        this.paused = false;
+        this.gameOver = false;
+        this.won = false;
+        if (this.audio) this.audio.playSfx('select');
+        return;
+      }
+    }
+  }
+
+  handleGameMouseMove(x, y) {
+    if (this.showMainMenu || this.showLevelSelect) return false;
+
+    if (this.gameOver && !this.won) {
+      const btnW = 200;
+      const btnH = 50;
+      const btnX = this.width / 2 - btnW / 2;
+      
+      // Restart
+      const restartY = this.height / 2 + 10;
+      if (x >= btnX && x <= btnX + btnW && y >= restartY && y <= restartY + btnH) {
+        return true;
+      }
+      
+      // Back
+      const backY = this.height / 2 + 80;
+      if (x >= btnX && x <= btnX + btnW && y >= backY && y <= backY + btnH) {
+        return true;
+      }
+    }
+    return false;
+  }
+  
   _renderMainMenu(ctx) {
     // Hide HUD and OPS elements
     const hudEl = document.getElementById('hud');
     const opsEl = document.getElementById('ops');
     const levelContainerEl = document.getElementById('level-container');
+    const backBtn = document.getElementById('back-btn');
     if (hudEl) hudEl.style.display = 'none';
     if (opsEl) opsEl.style.display = 'none';
     if (levelContainerEl) levelContainerEl.style.display = 'none';
+    if (backBtn) backBtn.style.display = 'none';
 
     const time = performance.now() / 1000;
 
