@@ -163,7 +163,27 @@ export default class Game {
   
   loadCompletedLevels() {
     // Load completed levels from localStorage
-    // A level is considered completed if it has a high score > 0
+    try {
+      const saved = localStorage.getItem('completedLevels');
+      if (saved) {
+        const completed = JSON.parse(saved);
+        // Ensure array has correct length
+        const result = new Array(levels.length).fill(false);
+        for (let i = 0; i < Math.min(completed.length, levels.length); i++) {
+          result[i] = completed[i];
+        }
+        // Also check high scores as fallback (if high score > 0, it must be completed)
+        const highScores = this.loadHighScores();
+        for (let i = 0; i < levels.length; i++) {
+          if (highScores[i] > 0) result[i] = true;
+        }
+        return result;
+      }
+    } catch (e) {
+      console.warn('Failed to load completed levels:', e);
+    }
+
+    // Fallback: A level is considered completed if it has a high score > 0
     const highScores = this.loadHighScores();
     const completed = [];
     for (let i = 0; i < levels.length; i++) {
@@ -206,6 +226,9 @@ export default class Game {
   saveHighScore(levelIndex, score) {
     // Save high score for a level
     if (levelIndex >= 0 && levelIndex < levels.length) {
+      // Always mark level as completed when finished, regardless of score
+      this.markLevelCompleted(levelIndex);
+      
       if (score > (this.highScores[levelIndex] || 0)) {
         this.highScores[levelIndex] = score;
         try {
@@ -213,8 +236,6 @@ export default class Game {
         } catch (e) {
           console.warn('Failed to save high score:', e);
         }
-        // Mark level as completed when a score is saved
-        this.markLevelCompleted(levelIndex);
         // Update total score (sum of all high scores)
         this.totalScore = this.calculateTotalScore();
         return true; // New record!

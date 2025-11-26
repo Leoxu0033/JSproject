@@ -396,7 +396,8 @@ if (joystickArea && joystickStick) {
   let startY = 0;
   let moveX = 0;
   let moveY = 0;
-  const maxDist = 40; // Max stick movement radius
+  let joystickTouchId = null; // Track specific touch ID
+  const maxDist = 25; // Max stick movement radius
 
   const handleJoystick = (active) => {
     // Reset keys first
@@ -414,7 +415,7 @@ if (joystickArea && joystickStick) {
     joystickStick.style.transform = `translate(${moveX}px, ${moveY}px)`;
 
     // Threshold for activation (deadzone)
-    const threshold = 15;
+    const threshold = 10;
 
     if (moveX < -threshold) input.setKey('ArrowLeft', true);
     if (moveX > threshold) input.setKey('ArrowRight', true);
@@ -424,7 +425,11 @@ if (joystickArea && joystickStick) {
 
   joystickArea.addEventListener('touchstart', (e) => {
     e.preventDefault();
+    // If already tracking a touch, ignore new ones
+    if (joystickTouchId !== null) return;
+
     const touch = e.changedTouches[0];
+    joystickTouchId = touch.identifier;
     
     // Set start position to touch position (Dynamic Origin)
     startX = touch.clientX;
@@ -446,7 +451,17 @@ if (joystickArea && joystickStick) {
 
   joystickArea.addEventListener('touchmove', (e) => {
     e.preventDefault();
-    const touch = e.changedTouches[0];
+    if (joystickTouchId === null) return;
+
+    // Find the specific touch we are tracking
+    let touch = null;
+    for (let i = 0; i < e.changedTouches.length; i++) {
+      if (e.changedTouches[i].identifier === joystickTouchId) {
+        touch = e.changedTouches[i];
+        break;
+      }
+    }
+    if (!touch) return; // Not our touch
     
     // Calculate delta from start position
     let dx = touch.clientX - startX;
@@ -467,6 +482,19 @@ if (joystickArea && joystickStick) {
 
   const endJoystick = (e) => {
     e.preventDefault();
+    if (joystickTouchId === null) return;
+
+    // Check if our touch ended
+    let touchFound = false;
+    for (let i = 0; i < e.changedTouches.length; i++) {
+      if (e.changedTouches[i].identifier === joystickTouchId) {
+        touchFound = true;
+        break;
+      }
+    }
+    if (!touchFound) return;
+
+    joystickTouchId = null;
     moveX = 0;
     moveY = 0;
     handleJoystick(false);
