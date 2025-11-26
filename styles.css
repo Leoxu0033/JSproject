@@ -258,51 +258,34 @@ canvas{
   margin-bottom: 30px; /* Align with joystick center roughly */
 }
 
-/* Mobile Utility Menu */
-#mobile-menu-toggle {
+/* Mobile Tools (Top Right) */
+#mobile-tools {
   display: none;
   position: fixed;
   top: 10px;
   right: 10px;
-  width: 40px;
-  height: 40px;
-  background: rgba(255, 255, 255, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 8px;
-  color: white;
-  font-size: 20px;
-  z-index: 200;
-  backdrop-filter: blur(4px);
-}
-
-#mobile-utility-panel {
-  display: none;
-  position: fixed;
-  top: 60px;
-  right: 10px;
-  flex-direction: column;
   gap: 8px;
   z-index: 200;
 }
 
-#mobile-utility-panel button {
-  background: rgba(15, 23, 36, 0.9);
+#mobile-tools button {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background: rgba(15, 23, 36, 0.6);
   border: 1px solid rgba(255, 255, 255, 0.2);
   color: white;
-  padding: 8px 12px;
-  border-radius: 6px;
-  font-size: 14px;
-  text-align: left;
-  backdrop-filter: blur(8px);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-}
-
-#mobile-utility-panel button:active {
-  background: rgba(255, 255, 255, 0.2);
-}
-
-#mobile-utility-panel.visible {
+  font-size: 18px;
   display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(4px);
+  padding: 0;
+}
+
+#mobile-tools button:active {
+  background: rgba(255, 255, 255, 0.2);
+  transform: scale(0.95);
 }
 
 /* Show mobile controls on touch devices or small screens */
@@ -311,10 +294,8 @@ canvas{
     display: flex; /* Will be toggled by JS based on game state */
   }
   
-  #mobile-menu-toggle {
-    display: flex;
-    align-items: center;
-    justify-content: center;
+  #mobile-tools {
+    display: flex; /* Will be toggled by JS based on game state */
   }
 
   /* Adjust HUD for mobile */
@@ -327,7 +308,7 @@ canvas{
     flex-wrap: wrap;
     margin: 0;
     width: auto;
-    max-width: calc(100% - 60px); /* Avoid menu button */
+    max-width: calc(100% - 180px); /* Avoid tools */
     justify-content: flex-start;
     gap: 8px;
     pointer-events: none;
@@ -345,14 +326,9 @@ canvas{
   
   #ops { display: none !important; } /* Hide instructions on mobile */
   
+  /* Hide the desktop back button on mobile in-game */
   #back-btn {
-    top: 10px;
-    bottom: auto;
-    left: 10px;
-    z-index: 200; /* Ensure clickable */
-    padding: 8px 16px;
-    font-size: 14px;
-    background: rgba(255, 77, 77, 0.9); /* More visible */
+    display: none !important;
   }
 
   /* Larger Dash Button */

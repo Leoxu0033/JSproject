@@ -461,76 +461,63 @@ if (joystickArea && joystickStick) {
   joystickArea.addEventListener('touchcancel', endJoystick);
 }
 
-// Mobile Utility Menu Logic
-const mobileMenuBtn = document.getElementById('mobile-menu-toggle');
-const mobileUtilityPanel = document.getElementById('mobile-utility-panel');
-const mBtnRestart = document.getElementById('m-btn-restart');
-const mBtnPause = document.getElementById('m-btn-pause');
-const mBtnMute = document.getElementById('m-btn-mute');
-const mBtnExit = document.getElementById('m-btn-exit');
+// Mobile Tools Logic
+const mtPause = document.getElementById('mt-pause');
+const mtStyle = document.getElementById('mt-style');
+const mtMute = document.getElementById('mt-mute');
+const mtExit = document.getElementById('mt-exit');
 
-if (mobileMenuBtn && mobileUtilityPanel) {
-  mobileMenuBtn.addEventListener('click', (e) => {
-    e.stopPropagation(); // Prevent game click
-    mobileUtilityPanel.classList.toggle('visible');
+if (mtPause) {
+  mtPause.addEventListener('click', () => {
+    game.paused = !game.paused;
+    mtPause.textContent = game.paused ? '▶️' : '⏸️';
     if (navigator.vibrate) navigator.vibrate(10);
   });
+}
 
-  // Close menu when clicking outside
-  window.addEventListener('click', (e) => {
-    if (mobileUtilityPanel.classList.contains('visible') && 
-        !mobileUtilityPanel.contains(e.target) && 
-        e.target !== mobileMenuBtn) {
-      mobileUtilityPanel.classList.remove('visible');
+if (mtStyle) {
+  mtStyle.addEventListener('click', () => {
+    game.bgStyle = (game.bgStyle + 1) % game.bgStyles.length;
+    if (game.audio) game.audio.playSfx('select');
+    if (navigator.vibrate) navigator.vibrate(10);
+  });
+}
+
+if (mtMute) {
+  mtMute.addEventListener('click', () => {
+    if (game.audio) {
+      game.audio.toggleMute();
+      mtMute.textContent = game.audio.muted ? '🔇' : '🔊';
+      if (navigator.vibrate) navigator.vibrate(10);
     }
   });
+}
 
-  if (mBtnRestart) {
-    mBtnRestart.addEventListener('click', () => {
-      if (game.won && !game.gameOver) return; // Don't reset during win anim
-      game.reset();
-      mobileUtilityPanel.classList.remove('visible');
-    });
-  }
-
-  if (mBtnPause) {
-    mBtnPause.addEventListener('click', () => {
-      game.paused = !game.paused;
-      mBtnPause.textContent = game.paused ? '▶️ Resume' : '⏸️ Pause';
-      mobileUtilityPanel.classList.remove('visible');
-    });
-  }
-
-  if (mBtnMute) {
-    mBtnMute.addEventListener('click', () => {
-      if (game.audio) {
-        game.audio.toggleMute();
-        mBtnMute.textContent = game.audio.muted ? '🔇 Unmute' : '🔊 Mute';
-      }
-    });
-  }
-
-  if (mBtnExit) {
-    mBtnExit.addEventListener('click', () => {
-      game.showLevelSelect = false;
-      game.showMainMenu = true;
-      game.paused = false;
-      game.gameOver = false;
-      game.won = false;
-      mobileUtilityPanel.classList.remove('visible');
-    });
-  }
+if (mtExit) {
+  mtExit.addEventListener('click', () => {
+    game.showLevelSelect = false;
+    game.showMainMenu = true;
+    game.paused = false;
+    game.gameOver = false;
+    game.won = false;
+    if (navigator.vibrate) navigator.vibrate(10);
+  });
 }
 
 // UI Update Loop for Mobile
 function updateMobileUI() {
   const mobileControls = document.getElementById('mobile-controls');
-  const backBtn = document.getElementById('back-btn');
+  const mobileTools = document.getElementById('mobile-tools');
+  
+  // Only show controls during gameplay (not in menus, not in game over)
+  const isGameplay = !game.showMainMenu && !game.showLevelSelect && !game.gameOver;
   
   if (mobileControls) {
-    // Only show controls during gameplay (not in menus, not in game over)
-    const isGameplay = !game.showMainMenu && !game.showLevelSelect && !game.gameOver;
     mobileControls.style.display = isGameplay ? 'flex' : 'none';
+  }
+  
+  if (mobileTools) {
+    mobileTools.style.display = isGameplay ? 'flex' : 'none';
   }
 
   // Ensure HUD is visible on mobile
@@ -540,8 +527,6 @@ function updateMobileUI() {
     const hideHud = game.showMainMenu || game.showLevelSelect;
     hud.style.display = hideHud ? 'none' : 'flex';
   }
-  
-  // Back button visibility logic is already in game loop, but we ensure z-index here via CSS
   
   requestAnimationFrame(updateMobileUI);
 }
