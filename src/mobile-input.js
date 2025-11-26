@@ -261,6 +261,95 @@ function createDodgeButton() {
   console.log('[mobile-input] dodge button created');
 }
 
+// Mobile DOM: main menu overlay (click Start -> show level select)
+function createMobileMainMenu() {
+  removeIfExists('mobile-main-menu');
+  const overlay = document.createElement('div');
+  overlay.id = 'mobile-main-menu';
+  Object.assign(overlay.style, {
+    position: 'fixed', left: '0', top: '0', right: '0', bottom: '0',
+    display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 20000,
+    background: 'linear-gradient(180deg, rgba(0,0,0,0.6), rgba(0,0,0,0.2))'
+  });
+
+  const card = document.createElement('div');
+  Object.assign(card.style, { background: 'rgba(15,23,36,0.95)', padding: '18px', borderRadius: '10px', textAlign: 'center', color: '#fff' });
+  const title = document.createElement('div');
+  title.textContent = 'Mini Flat Heroes';
+  Object.assign(title.style, { fontSize: '20px', fontWeight: 700, marginBottom: '12px' });
+  const start = document.createElement('button');
+  start.id = 'mobile-start';
+  start.textContent = 'Start';
+  Object.assign(start.style, { padding: '10px 16px', fontSize: '16px', borderRadius: '8px', background: '#ff4d4d', color: '#fff', border: 'none' });
+  start.addEventListener('click', (e) => {
+    const g = window.game;
+    if (g) {
+      g.showMainMenu = false;
+      g.showLevelSelect = true;
+      // ensure the canvas menu gets updated immediately
+    }
+    // Show mobile level select overlay
+    const lvl = document.getElementById('mobile-level-select');
+    if (lvl) lvl.style.display = 'flex';
+    overlay.style.display = 'none';
+    e && e.preventDefault();
+  });
+
+  card.appendChild(title);
+  card.appendChild(start);
+  overlay.appendChild(card);
+  document.body.appendChild(overlay);
+}
+
+// Mobile DOM: level select overlay with buttons for each level
+function createMobileLevelSelect() {
+  removeIfExists('mobile-level-select');
+  const overlay = document.createElement('div');
+  overlay.id = 'mobile-level-select';
+  Object.assign(overlay.style, {
+    position: 'fixed', left: '0', top: '0', right: '0', bottom: '0',
+    display: 'none', alignItems: 'center', justifyContent: 'center', zIndex: 20000,
+    background: 'linear-gradient(180deg, rgba(0,0,0,0.6), rgba(0,0,0,0.2))', overflowY: 'auto', padding: '20px'
+  });
+
+  const container = document.createElement('div');
+  Object.assign(container.style, { display: 'grid', gridTemplateColumns: 'repeat(1, 1fr)', gap: '10px', width: '100%', maxWidth: '420px' });
+
+  for (let i = 1; i < levels.length; i++) {
+    const btn = document.createElement('button');
+    btn.className = 'mobile-level-btn';
+    btn.textContent = `Level ${i}: ${levels[i].name || 'Stage'}`;
+    Object.assign(btn.style, { padding: '12px', fontSize: '16px', borderRadius: '8px', border: 'none', background: 'rgba(255,255,255,0.06)', color: '#fff', textAlign: 'left' });
+    btn.addEventListener('click', (e) => {
+      const g = window.game;
+      if (g) {
+        g.currentLevelIndex = i;
+        g.score = 0;
+        g.levelStartScore = 0;
+        g.loadLevel(i);
+      }
+      overlay.style.display = 'none';
+      e && e.preventDefault();
+    });
+    container.appendChild(btn);
+  }
+
+  // Back button
+  const back = document.createElement('button');
+  back.textContent = 'Back';
+  Object.assign(back.style, { marginTop: '12px', padding: '10px', borderRadius: '8px', background: 'rgba(255,255,255,0.06)', color: '#fff', border: 'none' });
+  back.addEventListener('click', () => {
+    overlay.style.display = 'none';
+    const main = document.getElementById('mobile-main-menu');
+    if (main) main.style.display = 'flex';
+    const g = window.game; if (g) { g.showLevelSelect = false; g.showMainMenu = true; }
+  });
+
+  overlay.appendChild(container);
+  overlay.appendChild(back);
+  document.body.appendChild(overlay);
+}
+
 function showMobileToast() {
   const t = document.createElement('div');
   t.id = 'mobile-toast';
@@ -316,6 +405,8 @@ function initMobileUI() {
   createJoystick();
   createQuickControls();
   createUtilityButtons();
+  createMobileMainMenu();
+  createMobileLevelSelect();
   bindTapToEnter();
   // showMobileToast();
   console.log('[mobile-input] mobile UI created');
@@ -366,58 +457,8 @@ function bindTapToEnter() {
     const el = e.target;
     if (!el) return;
     if (el.closest && (el.closest('#mobile-utils') || el.closest('#mobile-pause') || el.id === 'mobile-pause')) return;
-    // If game exists and we're in main menu, go straight to level select
-    try {
-      const g = window.game;
-      if (g && g.showMainMenu) {
-        g.showMainMenu = false;
-        g.showLevelSelect = true;
-        if (g.audio) { g.audio.resume && g.audio.resume(); g.audio.playSfx && g.audio.playSfx('select'); }
-        e && e.preventDefault();
-        return;
-      }
-
-      // If we're in level select, interpret tap as selecting a level card
-      if (g && g.showLevelSelect && canvas) {
-        const rect = canvas.getBoundingClientRect();
-        const scaleX = canvas.width / rect.width;
-        const scaleY = canvas.height / rect.height;
-        const clientX = (e.touches && e.touches[0]) ? e.touches[0].clientX : e.clientX;
-        const clientY = (e.touches && e.touches[0]) ? e.touches[0].clientY : e.clientY;
-        const x = (clientX - rect.left) * scaleX;
-        const y = (clientY - rect.top) * scaleY;
-
-        const cols = 3;
-        const cardW = 260;
-        const cardH = 120;
-        const gap = 20;
-        const gridW = cols * cardW + (cols - 1) * gap;
-        const startX = (canvas.width - gridW) / 2;
-        const startY = 180;
-
-        for (let i = 1; i < levels.length; i++) {
-          const gridIndex = i - 1;
-          const col = gridIndex % cols;
-          const row = Math.floor(gridIndex / cols);
-          const cx = startX + col * (cardW + gap);
-          const cy = startY + row * (cardH + gap);
-          if (x >= cx && x <= cx + cardW && y >= cy && y <= cy + cardH) {
-            if (g.audio) { g.audio.resume && g.audio.resume(); g.audio.playSfx && g.audio.playSfx('select'); }
-            g.currentLevelIndex = i;
-            g.score = 0;
-            g.levelStartScore = 0;
-            g.loadLevel(i);
-            e && e.preventDefault();
-            return;
-          }
-        }
-      }
-
-    } catch (err) {
-      // ignore and fallback to synthKey
-    }
-
-    // Synthesize Enter press as a fallback
+    // For mobile we use the DOM-based menus; do not interpret canvas touches.
+    // Synthesize Enter press to preserve keyboard-based handlers where appropriate.
     synthKey('keydown','Enter',13);
     synthKey('keyup','Enter',13);
     e && e.preventDefault();
