@@ -45,6 +45,15 @@
         </div>
     </div>
 
+    <script>
+      // 仅在触摸设备上按需加载移动端输入适配脚本
+      if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+        const s = document.createElement('script');
+        s.type = 'module';
+        s.src = 'src/mobile-input.js';
+        document.head.appendChild(s);
+      }
+    </script>
     <script type="module" src="src/main.js"></script>
   </body>
 </html>
