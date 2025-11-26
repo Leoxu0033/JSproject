@@ -218,13 +218,37 @@ window.addEventListener('keydown', (e) => {
   }
 });
 
+// Helper to get correct game coordinates handling object-fit: contain
+function getGameCoordinates(canvas, clientX, clientY) {
+  const rect = canvas.getBoundingClientRect();
+  const r = canvas.width / canvas.height;
+  const rr = rect.width / rect.height;
+  
+  let drawnWidth, drawnHeight, offsetX, offsetY;
+  
+  if (rr > r) {
+    // Pillarbox (bars on sides)
+    drawnHeight = rect.height;
+    drawnWidth = drawnHeight * r;
+    offsetX = (rect.width - drawnWidth) / 2;
+    offsetY = 0;
+  } else {
+    // Letterbox (bars on top/bottom)
+    drawnWidth = rect.width;
+    drawnHeight = drawnWidth / r;
+    offsetX = 0;
+    offsetY = (rect.height - drawnHeight) / 2;
+  }
+  
+  const x = (clientX - rect.left - offsetX) * (canvas.width / drawnWidth);
+  const y = (clientY - rect.top - offsetY) * (canvas.height / drawnHeight);
+  
+  return { x, y };
+}
+
 // Mouse interaction for Main Menu & Level Select
 canvas.addEventListener('mousemove', (e) => {
-  const rect = canvas.getBoundingClientRect();
-  const scaleX = game.width / rect.width;
-  const scaleY = game.height / rect.height;
-  const x = (e.clientX - rect.left) * scaleX;
-  const y = (e.clientY - rect.top) * scaleY;
+  const { x, y } = getGameCoordinates(canvas, e.clientX, e.clientY);
 
   if (game.showMainMenu) {
     const hovering = game.handleMenuMouseMove(x, y);
@@ -241,11 +265,7 @@ canvas.addEventListener('mousemove', (e) => {
 });
 
 canvas.addEventListener('click', (e) => {
-  const rect = canvas.getBoundingClientRect();
-  const scaleX = game.width / rect.width;
-  const scaleY = game.height / rect.height;
-  const x = (e.clientX - rect.left) * scaleX;
-  const y = (e.clientY - rect.top) * scaleY;
+  const { x, y } = getGameCoordinates(canvas, e.clientX, e.clientY);
 
   if (game.showMainMenu) {
     game.handleMenuClick(x, y);
@@ -296,8 +316,12 @@ function handleFirstInteraction() {
     });
   }
   window.removeEventListener('pointerdown', handleFirstInteraction);
+  window.removeEventListener('touchstart', handleFirstInteraction);
+  window.removeEventListener('keydown', handleFirstInteraction);
 }
 window.addEventListener('pointerdown', handleFirstInteraction);
+window.addEventListener('touchstart', handleFirstInteraction);
+window.addEventListener('keydown', handleFirstInteraction);
 
 // Retry button wiring
 const retryBtn = document.getElementById('retry-btn');
@@ -462,6 +486,17 @@ const mtStyle = document.getElementById('mt-style');
 const mtMute = document.getElementById('mt-mute');
 const mtExit = document.getElementById('mt-exit');
 
+// Generic touch feedback for all buttons
+document.querySelectorAll('button').forEach(btn => {
+  btn.addEventListener('touchstart', () => {
+    btn.classList.add('active');
+  }, { passive: true });
+  
+  btn.addEventListener('touchend', () => {
+    setTimeout(() => btn.classList.remove('active'), 150);
+  });
+});
+
 if (mtRestart) {
   mtRestart.addEventListener('click', () => {
     if (game.won && !game.gameOver) return; // Don't reset during win anim
@@ -480,8 +515,7 @@ if (mtPause) {
 
 if (mtStyle) {
   mtStyle.addEventListener('click', () => {
-    game.bgStyle = (game.bgStyle + 1) % game.bgStyles.length;
-    if (game.audio) game.audio.playSfx('select');
+    game.toggleStyle();
     if (navigator.vibrate) navigator.vibrate(10);
   });
 }
@@ -550,12 +584,8 @@ canvas.addEventListener('touchstart', (e) => {
   if (e.target === canvas) {
     e.preventDefault();
     // Also handle touch clicks for menu
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = game.width / rect.width;
-    const scaleY = game.height / rect.height;
     const touch = e.changedTouches[0];
-    const x = (touch.clientX - rect.left) * scaleX;
-    const y = (touch.clientY - rect.top) * scaleY;
+    const { x, y } = getGameCoordinates(canvas, touch.clientX, touch.clientY);
     
     if (game.showMainMenu) {
       game.handleMenuClick(x, y);

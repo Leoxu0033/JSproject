@@ -293,7 +293,7 @@ canvas{
   padding: 0;
 }
 
-#mobile-tools button:active {
+#mobile-tools button:active, #mobile-tools button.active {
   background: rgba(255, 255, 255, 0.2);
   transform: scale(0.95);
 }

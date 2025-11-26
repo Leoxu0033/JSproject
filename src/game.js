@@ -38,17 +38,7 @@ export default class Game {
         this.paused = !this.paused;
         // Music continues playing in background
       } else if (e.code === 'KeyY') {
-        // Toggle Background Style
-        this.bgStyle = (this.bgStyle + 1) % 5;
-        this._initScenery();
-        // Show toast/message about style change
-        this.flash('#ffffff', 0.1);
-        
-        // Update UI label
-        const styleEl = document.getElementById('style-toggle');
-        if (styleEl) {
-          styleEl.textContent = `🎨 Style: ${this.bgStyles[this.bgStyle]} (Y)`;
-        }
+        this.toggleStyle();
       }
     });
 
@@ -231,6 +221,30 @@ export default class Game {
       }
     }
     return false;
+  }
+
+  toggleStyle() {
+    this.bgStyle = (this.bgStyle + 1) % this.bgStyles.length;
+    
+    // Update current level style immediately
+    if (this.bgStyle === 5) { // Random
+       this.currentLevelStyle = Math.floor(Math.random() * 5);
+    } else {
+       this.currentLevelStyle = this.bgStyle;
+    }
+    
+    // Re-initialize scenery for the new style
+    this._initScenery();
+    
+    // Visual feedback
+    this.flash('#ffffff', 0.1);
+    if (this.audio) this.audio.playSfx('select');
+    
+    // Update UI label
+    const styleEl = document.getElementById('style-toggle');
+    if (styleEl) {
+      styleEl.textContent = `🎨 Style: ${this.bgStyles[this.bgStyle]} (Y)`;
+    }
   }
   
   reset() {
@@ -1694,6 +1708,7 @@ export default class Game {
       
       if (this.twoPlayerMode) {
         // P1 Controls (Left side)
+
         ctx.textAlign = 'left';
         ctx.fillStyle = '#ffffff'; // P1 Color
         ctx.fillText('P1 (White):', 100, 320);
@@ -2443,7 +2458,7 @@ export default class Game {
     const gridW = cols * cardW + (cols - 1) * gap;
     const startX = (this.width - gridW) / 2;
     const startY = 180;
-    
+
     for (let i = 1; i < levels.length; i++) {
       const gridIndex = i - 1;
       const col = gridIndex % cols;
@@ -2831,6 +2846,7 @@ export default class Game {
     const styleY = titleY + 40;
     if (x >= this.width/2 - 100 && x <= this.width/2 + 100 && y >= styleY - 15 && y <= styleY + 15) {
       this.bgStyle = (this.bgStyle + 1) % this.bgStyles.length;
+      this._initScenery();
       if (this.audio) this.audio.playSfx('select');
       return;
     }
