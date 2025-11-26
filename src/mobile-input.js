@@ -1,6 +1,7 @@
 // Mobile touch input adapter (方案 A)
 // 在触摸设备上创建虚拟摇杆与按钮，并把触摸直接写入共享的 `input` 实例（更可靠）
 import { input } from './input.js';
+import { levels } from './level.js';
 
 console.log('[mobile-input] module loaded');
 
@@ -316,7 +317,7 @@ function initMobileUI() {
   createQuickControls();
   createUtilityButtons();
   bindTapToEnter();
-  showMobileToast();
+  // showMobileToast();
   console.log('[mobile-input] mobile UI created');
 
   // Watch game state and create/remove dodge button only when gameplay is active
@@ -365,7 +366,58 @@ function bindTapToEnter() {
     const el = e.target;
     if (!el) return;
     if (el.closest && (el.closest('#mobile-utils') || el.closest('#mobile-pause') || el.id === 'mobile-pause')) return;
-    // Synthesize Enter press
+    // If game exists and we're in main menu, go straight to level select
+    try {
+      const g = window.game;
+      if (g && g.showMainMenu) {
+        g.showMainMenu = false;
+        g.showLevelSelect = true;
+        if (g.audio) { g.audio.resume && g.audio.resume(); g.audio.playSfx && g.audio.playSfx('select'); }
+        e && e.preventDefault();
+        return;
+      }
+
+      // If we're in level select, interpret tap as selecting a level card
+      if (g && g.showLevelSelect && canvas) {
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        const clientX = (e.touches && e.touches[0]) ? e.touches[0].clientX : e.clientX;
+        const clientY = (e.touches && e.touches[0]) ? e.touches[0].clientY : e.clientY;
+        const x = (clientX - rect.left) * scaleX;
+        const y = (clientY - rect.top) * scaleY;
+
+        const cols = 3;
+        const cardW = 260;
+        const cardH = 120;
+        const gap = 20;
+        const gridW = cols * cardW + (cols - 1) * gap;
+        const startX = (canvas.width - gridW) / 2;
+        const startY = 180;
+
+        for (let i = 1; i < levels.length; i++) {
+          const gridIndex = i - 1;
+          const col = gridIndex % cols;
+          const row = Math.floor(gridIndex / cols);
+          const cx = startX + col * (cardW + gap);
+          const cy = startY + row * (cardH + gap);
+          if (x >= cx && x <= cx + cardW && y >= cy && y <= cy + cardH) {
+            if (g.audio) { g.audio.resume && g.audio.resume(); g.audio.playSfx && g.audio.playSfx('select'); }
+            g.currentLevelIndex = i;
+            g.score = 0;
+            g.levelStartScore = 0;
+            g.loadLevel(i);
+            e && e.preventDefault();
+            return;
+          }
+        }
+      }
+
+    } catch (err) {
+      // ignore and fallback to synthKey
+    }
+
+    // Synthesize Enter press as a fallback
     synthKey('keydown','Enter',13);
     synthKey('keyup','Enter',13);
     e && e.preventDefault();
