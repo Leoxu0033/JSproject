@@ -2,6 +2,8 @@
 // 在触摸设备上创建虚拟摇杆与按钮，并把触摸直接写入共享的 `input` 实例（更可靠）
 import { input } from './input.js';
 
+console.log('[mobile-input] module loaded');
+
 function codeNameFromKeyCode(keyCode) {
   const map = {
     32: 'Space',
@@ -235,7 +237,7 @@ function createDodgeButton() {
   removeIfExists && removeIfExists('mobile-dodge');
   const btn = document.createElement('button');
   btn.id = 'mobile-dodge';
-  btn.textContent = '闪避';
+  btn.textContent = 'DASH';
   Object.assign(btn.style, {
     position: 'fixed',
     right: '24px',
