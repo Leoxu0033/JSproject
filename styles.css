@@ -14,13 +14,26 @@ body{
   display:flex;
   align-items:center;
   justify-content:center;
+  overflow: hidden; /* Prevent scrolling */
+  touch-action: none; /* Prevent browser gestures */
 }
 #wrapper{
   position:relative;
   width: 900px;
   height: 600px;
+  max-width: 100%;
+  max-height: 100vh;
+  max-height: 100dvh; /* Use dynamic viewport height if supported */
 }
-canvas{display:block;border-radius:8px;background:#0a0a0a;box-shadow:0 6px 30px rgba(0,0,0,0.7)}
+canvas{
+  display:block;
+  border-radius:8px;
+  background:#0a0a0a;
+  box-shadow:0 6px 30px rgba(0,0,0,0.7);
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
 
 #level-container {
   position: absolute;
@@ -212,3 +225,186 @@ canvas{display:block;border-radius:8px;background:#0a0a0a;box-shadow:0 6px 30px 
 #mobile-utils { display: none; }
 
 
+/* Additional mobile controls & tools (merged from other branch) */
+#back-btn {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  margin-bottom: 12px;
+  background: rgba(15, 23, 36, 0.8);
+  color: var(--white);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-weight: 700;
+  cursor: pointer;
+  backdrop-filter: blur(4px);
+  transition: all 0.2s ease;
+  font-family: inherit;
+  display: none; /* Controlled by JS */
+  z-index: 10;
+}
+
+#back-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+/* Mobile Controls */
+#mobile-controls {
+  display: none;
+  position: fixed; /* Fixed to screen, not wrapper */
+  bottom: 20px;
+  left: 0;
+  width: 100%;
+  padding: 0 40px;
+  padding-bottom: env(safe-area-inset-bottom, 20px); /* Handle iPhone home bar */
+  padding-left: max(40px, env(safe-area-inset-left)); /* Handle notch in landscape */
+  padding-right: max(40px, env(safe-area-inset-right)); /* Handle notch in landscape */
+  justify-content: flex-end; /* Align dash button to right */
+  align-items: flex-end;
+  pointer-events: none;
+  z-index: 100;
+}
+
+#joystick-area {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 50vw; /* Left half of screen */
+  height: 100%;
+  z-index: 150;
+  pointer-events: auto;
+}
+
+#joystick-base {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100px;
+  height: 100px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  backdrop-filter: blur(4px);
+  opacity: 0; /* Hidden by default */
+  transition: opacity 0.1s;
+  pointer-events: none;
+  transform: translate(-50%, -50%); /* Center on coordinates */
+}
+
+#joystick-base.visible {
+  opacity: 1;
+}
+
+#joystick-stick {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 50px;
+  height: 50px;
+  margin-left: -25px;
+  margin-top: -25px;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 50%;
+  box-shadow: 0 0 10px rgba(0,0,0,0.3);
+  pointer-events: none;
+  transform: translate(0, 0);
+}
+
+.action-buttons {
+  display: flex;
+  gap: 15px;
+  pointer-events: auto; /* Re-enable pointer events for buttons */
+  margin-bottom: 30px; /* Align with joystick center roughly */
+}
+
+/* Mobile Tools (Top Right) */
+#mobile-tools {
+  display: none;
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  gap: 8px;
+  z-index: 200;
+}
+
+#mobile-tools button {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background: rgba(15, 23, 36, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(4px);
+  padding: 0;
+}
+
+#mobile-tools button:active, #mobile-tools button.active {
+  background: rgba(255, 255, 255, 0.2);
+  transform: scale(0.95);
+}
+
+/* Show mobile controls on touch devices or small screens */
+@media (max-width: 900px), (hover: none) {
+  #mobile-controls {
+    display: flex; /* Will be toggled by JS based on game state */
+  }
+  
+  #mobile-tools {
+    display: flex; /* Will be toggled by JS based on game state */
+  }
+
+  /* Adjust HUD for mobile */
+  #hud {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    bottom: auto; /* Reset bottom */
+    flex-direction: row;
+    flex-wrap: wrap;
+    margin: 0;
+    width: auto;
+    max-width: calc(100% - 180px); /* Avoid tools */
+    justify-content: flex-start;
+    gap: 8px;
+    pointer-events: none;
+  }
+  
+  #hud > div {
+    padding: 4px 8px;
+    font-size: 12px;
+    background: rgba(0, 0, 0, 0.6);
+    border: none;
+  }
+  
+  .hud-icon { font-size: 14px; }
+  .hud-value { font-size: 14px; }
+  
+  #ops { display: none !important; } /* Hide instructions on mobile */
+  
+  /* Hide the desktop back button on mobile in-game */
+  #back-btn {
+    display: none !important;
+  }
+
+  /* Larger Dash Button */
+  #btn-dash {
+    width: 80px;
+    height: 80px;
+    font-size: 32px;
+    background: rgba(255, 209, 102, 0.3);
+    border-color: rgba(255, 209, 102, 0.6);
+  }
+  
+  #btn-dash:active, #btn-dash.active {
+    background: rgba(255, 209, 102, 0.6);
+    transform: scale(0.92);
+    box-shadow: 0 0 15px rgba(255, 209, 102, 0.4);
+  }
+}

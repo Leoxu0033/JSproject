@@ -7,10 +7,16 @@ export class Player {
     this.w = 34;
     this.h = 34;
     this.vel = { x: 0, y: 0 };
-    this.speed = 380; // px/s (increased for faster feel)
-    this.jumpSpeed = -520;
+    this.baseSpeed = 380; // px/s (increased for faster feel)
+    this.speed = this.baseSpeed;
+    this.baseJumpSpeed = -520;
+    this.jumpSpeed = this.baseJumpSpeed;
     this.onGround = false;
     this.alive = true;
+    
+    // Power-up timers
+    this.speedBoostTimer = 0;
+    this.jumpBoostTimer = 0;
     // use shared input instance
     this.input = input;
     // small coyote time & jump buffer
@@ -70,6 +76,14 @@ export class Player {
   }
 
   update(dt, game) {
+    // Update power-up timers
+    if (this.speedBoostTimer > 0) this.speedBoostTimer -= dt;
+    if (this.jumpBoostTimer > 0) this.jumpBoostTimer -= dt;
+
+    // Apply power-ups
+    this.speed = this.speedBoostTimer > 0 ? this.baseSpeed * 1.5 : this.baseSpeed;
+    this.jumpSpeed = this.jumpBoostTimer > 0 ? this.baseJumpSpeed * 1.25 : this.baseJumpSpeed;
+
     // input: keyboard or gamepad
     let left = false;
     let right = false;
@@ -364,7 +378,7 @@ export class Player {
               this.vel.y = 0;
               this.onGround = true;
               onSlopeSurface = true;
-            } else if (foot >= slopeTop - 8 && foot <= slopeTop + 8) {
+            } else if (foot >= slopeTop - 8 && foot <= slopeTop + 8 && this.vel.y >= 0) {
               // Player is already on slope surface (within tolerance)
               // Also snap to surface if close enough
               if (Math.abs(foot - slopeTop) < 5) {
@@ -374,6 +388,20 @@ export class Player {
               this.onGround = true;
               onSlopeSurface = true;
             }
+          }
+          
+          // Check for ceiling collision (hitting bottom of slope from below)
+          if (this.vel.y < 0) {
+             const objBottom = obj.y + obj.h;
+             // Check if player head is crossing the bottom line
+             // Use a small tolerance
+             if (this.pos.y < objBottom && prev.y >= objBottom - 5) {
+                 // Check horizontal overlap
+                 if (this.pos.x + pw > objLeft && this.pos.x < objRight) {
+                     this.pos.y = objBottom;
+                     this.vel.y = 0;
+                 }
+             }
           }
           
           // Only handle horizontal collision if player is NOT on the slope surface

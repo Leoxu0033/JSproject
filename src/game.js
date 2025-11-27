@@ -14,6 +14,8 @@ export default class Game {
     this.height = canvas.height;
     // Tadpole spawn timer
     this._tadpoleTimer = 0;
+    // Special enemy spawn timer
+    this._specialEnemyTimer = 0;
     // Batch spawning: support multiple simultaneous batches
     this._tadpoleBatches = []; // Array of active batches: {location: {x,y}, count: 0, size: N, timer: 0}
     this._tadpoleBatchInterval = 0.15; // Time between tadpoles in a batch
@@ -36,17 +38,7 @@ export default class Game {
         this.paused = !this.paused;
         // Music continues playing in background
       } else if (e.code === 'KeyY') {
-        // Toggle Background Style
-        this.bgStyle = (this.bgStyle + 1) % 5;
-        this._initScenery();
-        // Show toast/message about style change
-        this.flash('#ffffff', 0.1);
-        
-        // Update UI label
-        const styleEl = document.getElementById('style-toggle');
-        if (styleEl) {
-          styleEl.textContent = `🎨 Style: ${this.bgStyles[this.bgStyle]} (Y)`;
-        }
+        this.toggleStyle();
       }
     });
 
@@ -119,8 +111,9 @@ export default class Game {
     this.playerColors = ['#ffffff', '#ffd166', '#06d6a0', '#ef476f', '#118ab2'];
     
     // Background Style
-    this.bgStyle = 2; // 0: Neon, 1: Cyber-Nature, 2: Nature, 3: Underwater, 4: Space
-    this.bgStyles = ['Neon', 'Cyber', 'Nature', 'Underwater', 'Space'];
+    this.bgStyle = 5; // 0: Neon, 1: Cyber-Nature, 2: Nature, 3: Underwater, 4: Space, 5: Random
+    this.bgStyles = ['Neon', 'Cyber', 'Nature', 'Underwater', 'Space', 'Random'];
+    this.currentLevelStyle = this.bgStyle; // The actual style used for the current level
     
     // Background Scenery
     this.scenery = [];
@@ -170,7 +163,27 @@ export default class Game {
   
   loadCompletedLevels() {
     // Load completed levels from localStorage
-    // A level is considered completed if it has a high score > 0
+    try {
+      const saved = localStorage.getItem('completedLevels');
+      if (saved) {
+        const completed = JSON.parse(saved);
+        // Ensure array has correct length
+        const result = new Array(levels.length).fill(false);
+        for (let i = 0; i < Math.min(completed.length, levels.length); i++) {
+          result[i] = completed[i];
+        }
+        // Also check high scores as fallback (if high score > 0, it must be completed)
+        const highScores = this.loadHighScores();
+        for (let i = 0; i < levels.length; i++) {
+          if (highScores[i] > 0) result[i] = true;
+        }
+        return result;
+      }
+    } catch (e) {
+      console.warn('Failed to load completed levels:', e);
+    }
+
+    // Fallback: A level is considered completed if it has a high score > 0
     const highScores = this.loadHighScores();
     const completed = [];
     for (let i = 0; i < levels.length; i++) {
@@ -213,6 +226,9 @@ export default class Game {
   saveHighScore(levelIndex, score) {
     // Save high score for a level
     if (levelIndex >= 0 && levelIndex < levels.length) {
+      // Always mark level as completed when finished, regardless of score
+      this.markLevelCompleted(levelIndex);
+      
       if (score > (this.highScores[levelIndex] || 0)) {
         this.highScores[levelIndex] = score;
         try {
@@ -220,14 +236,36 @@ export default class Game {
         } catch (e) {
           console.warn('Failed to save high score:', e);
         }
-        // Mark level as completed when a score is saved
-        this.markLevelCompleted(levelIndex);
         // Update total score (sum of all high scores)
         this.totalScore = this.calculateTotalScore();
         return true; // New record!
       }
     }
     return false;
+  }
+
+  toggleStyle() {
+    this.bgStyle = (this.bgStyle + 1) % this.bgStyles.length;
+    
+    // Update current level style immediately
+    if (this.bgStyle === 5) { // Random
+       this.currentLevelStyle = Math.floor(Math.random() * 5);
+    } else {
+       this.currentLevelStyle = this.bgStyle;
+    }
+    
+    // Re-initialize scenery for the new style
+    this._initScenery();
+    
+    // Visual feedback
+    this.flash('#ffffff', 0.1);
+    if (this.audio) this.audio.playSfx('select');
+    
+    // Update UI label
+    const styleEl = document.getElementById('style-toggle');
+    if (styleEl) {
+      styleEl.textContent = `🎨 Style: ${this.bgStyles[this.bgStyle]} (Y)`;
+    }
   }
   
   reset() {
@@ -287,13 +325,15 @@ export default class Game {
     // Reset level state
     this.currentLevelIndex = levelIndex;
     
-    // Force Neon style for Tutorial Level (Index 0) for better text visibility
+    // Determine style for this level
     if (this.currentLevelIndex === 0) {
-      this.bgStyle = 0; // Neon
-      // Update UI label
-      const styleEl = document.getElementById('style-toggle');
-      if (styleEl) {
-        styleEl.textContent = `🎨 Style: ${this.bgStyles[this.bgStyle]} (Y)`;
+      this.currentLevelStyle = 0; // Force Neon for Tutorial
+    } else {
+      if (this.bgStyle === 5) { // Random
+         // Pick random from 0-4
+         this.currentLevelStyle = Math.floor(Math.random() * 5);
+      } else {
+         this.currentLevelStyle = this.bgStyle;
       }
     }
 
@@ -436,10 +476,10 @@ export default class Game {
     this.scenery = [];
     const bottom = this.height;
     
-    if (this.bgStyle === 0) {
+    if (this.currentLevelStyle === 0) {
       // Neon Style: No scenery, just grid
       return;
-    } else if (this.bgStyle === 1) {
+    } else if (this.currentLevelStyle === 1) {
       // Cyber-Nature Style
       // Mountains (Background)
       const numMountains = 3 + Math.floor(Math.random() * 3);
@@ -488,7 +528,7 @@ export default class Game {
           color: Math.random() > 0.5 ? '#4ade80' : '#f472b6' // Green or Pink
         });
       }
-    } else if (this.bgStyle === 2) {
+    } else if (this.currentLevelStyle === 2) {
       // Nature Style
       // Distant Mountains (Green/Blue)
       const numMountains = 3 + Math.floor(Math.random() * 3);
@@ -537,7 +577,7 @@ export default class Game {
           color: Math.random() > 0.5 ? '#52b788' : '#ffadad' // Green or Pink Flower
         });
       }
-    } else if (this.bgStyle === 3) {
+    } else if (this.currentLevelStyle === 3) {
       // Underwater Style
       // Seaweed (Tall wavy plants)
       const numSeaweed = 15 + Math.floor(Math.random() * 10);
@@ -585,7 +625,7 @@ export default class Game {
           color: Math.random() > 0.5 ? '#ff7675' : '#fab1a0' // Pink/Peach
         });
       }
-    } else if (this.bgStyle === 4) {
+    } else if (this.currentLevelStyle === 4) {
       // Space Style
       // Distant Stars
       const numStars = 50 + Math.floor(Math.random() * 50);
@@ -1185,6 +1225,53 @@ export default class Game {
       }
     }
 
+    // Special Enemy Spawner (Continuous)
+    this._specialEnemyTimer += dt;
+    // Spawn every 5-10 seconds, decreasing with level
+    const specialInterval = Math.max(2.0, 8.0 - (levelNum * 0.5));
+    
+    if (this._specialEnemyTimer >= specialInterval) {
+      this._specialEnemyTimer = 0;
+      
+      // Pick a random type (excluding tadpole)
+      // Weighted random: higher levels unlock harder enemies
+      let availableTypes = ['walker'];
+      if (levelNum >= 2) availableTypes.push('roamer');
+      if (levelNum >= 3) availableTypes.push('jumper');
+      if (levelNum >= 4) availableTypes.push('floater');
+      if (levelNum >= 5) availableTypes.push('chaser');
+      
+      const type = availableTypes[Math.floor(Math.random() * availableTypes.length)];
+      
+      // Spawn at random edge
+      const edge = Math.floor(Math.random() * 4);
+      const wallThickness = 12;
+      const spawnMargin = 40;
+      const groundY = this.currentLevel ? this.currentLevel.groundY : 60;
+      
+      let x, y;
+      if (edge === 0) { // top
+        x = Math.random() * (this.width - 100) + 50;
+        y = wallThickness + spawnMargin;
+      } else if (edge === 1) { // bottom (ground)
+        x = Math.random() * (this.width - 100) + 50;
+        y = this.height - groundY - 40;
+      } else if (edge === 2) { // left
+        x = wallThickness + spawnMargin;
+        y = Math.random() * (this.height - groundY - 100) + 50;
+      } else { // right
+        x = this.width - wallThickness - spawnMargin - 40;
+        y = Math.random() * (this.height - groundY - 100) + 50;
+      }
+      
+      const enemy = new Enemy(x, y, type);
+      this.entities.push(enemy);
+      this.enemies.push(enemy);
+      
+      // Spawn effect
+      this.spawnParticles(x + enemy.w/2, y + enemy.h/2, '#ffcc00', 10);
+    }
+
     // poll gamepads and auto-join players
     if (navigator.getGamepads) {
       const gps = navigator.getGamepads();
@@ -1306,16 +1393,66 @@ export default class Game {
           } else {
             // Non-tadpole enemies: player can kill them by touching (no stomp required)
             en.alive = false;
-            this.score += 100;
             this.audio.playSfx('stomp');
+            
+            // Different effects based on enemy type
+            let scoreBonus = 100;
+            let particleColor = '#ff4d4d';
+            let effectText = '';
+            
+            if (en.type === 'walker') {
+                scoreBonus = 100;
+                particleColor = '#ef5350';
+            } else if (en.type === 'chaser') {
+                scoreBonus = 200;
+                particleColor = '#ffab91';
+                effectText = 'SPEED UP!';
+                // Speed boost
+                p.speedBoostTimer = 5.0;
+            } else if (en.type === 'jumper') {
+                scoreBonus = 150;
+                particleColor = '#ffe082';
+                effectText = 'HIGH JUMP!';
+                // Jump boost
+                p.jumpBoostTimer = 5.0;
+            } else if (en.type === 'roamer') {
+                scoreBonus = 150;
+                particleColor = '#b39ddb';
+                effectText = 'HEAL +1';
+                // Heal
+                const maxLives = this.twoPlayerMode ? 5 : 3;
+                if (this.lives < maxLives) {
+                    this.lives++;
+                    const livesEl = document.getElementById('lives');
+                    if (livesEl) livesEl.innerHTML = `<span class="hud-icon">❤️</span> <span class="hud-value">${this.lives}</span>`;
+                }
+            } else if (en.type === 'floater') {
+                scoreBonus = 300;
+                particleColor = '#81c784';
+                effectText = 'SHIELD!';
+                // Invulnerability
+                p.invulnerable = true;
+                p.invulTimer = 3.0;
+            }
+            
+            this.score += scoreBonus;
+            
+            // Show effect text (using flash color as hint)
+            if (effectText) {
+                this.flash(particleColor, 0.15);
+            } else {
+                this.flash('#ffffff', 0.08);
+            }
+
             // Play score sound for bonus
             setTimeout(() => {
               if (this.audio && this.audio.playSfx) {
                 this.audio.playSfx('score');
               }
             }, 50);
+            
             // spawn particles
-            this.spawnParticles(en.pos.x + en.w / 2, en.pos.y + en.h / 2, '#ff4d4d', 18);
+            this.spawnParticles(en.pos.x + en.w / 2, en.pos.y + en.h / 2, particleColor, 18);
             
             // If player was falling, give a small bounce
             if (p.vel.y > 0) {
@@ -1323,9 +1460,8 @@ export default class Game {
               p.vel.y = -bounce;
             }
             
-            // small screen shake and flash on kill
+            // small screen shake
             this.screenShake(4, 0.15);
-            this.flash('#ffffff', 0.08);
           }
         }
       }
@@ -1489,9 +1625,11 @@ export default class Game {
     const hudEl = document.getElementById('hud');
     const opsEl = document.getElementById('ops');
     const levelContainerEl = document.getElementById('level-container');
+    const backBtn = document.getElementById('back-btn');
     if (hudEl) hudEl.style.display = '';
     if (opsEl) opsEl.style.display = '';
     if (levelContainerEl) levelContainerEl.style.display = '';
+    if (backBtn) backBtn.style.display = 'block';
 
     // update screen shake offsets
     if (this.shakeTimer > 0) {
@@ -1512,7 +1650,7 @@ export default class Game {
     // --- Background ---
     let bgGradient;
     
-    if (this.bgStyle === 0) {
+    if (this.currentLevelStyle === 0) {
       // Neon Style
       bgGradient = ctx.createRadialGradient(
         this.width / 2, this.height / 2, 0,
@@ -1520,7 +1658,7 @@ export default class Game {
       );
       bgGradient.addColorStop(0, '#1e293b'); // Lighter center
       bgGradient.addColorStop(1, '#0f172a'); // Darker corners
-    } else if (this.bgStyle === 1) {
+    } else if (this.currentLevelStyle === 1) {
       // Cyber-Nature Style
       bgGradient = ctx.createRadialGradient(
         this.width / 2, this.height / 2, 0,
@@ -1528,18 +1666,18 @@ export default class Game {
       );
       bgGradient.addColorStop(0, '#1e293b'); // Lighter center
       bgGradient.addColorStop(1, '#0f172a'); // Darker corners
-    } else if (this.bgStyle === 2) {
+    } else if (this.currentLevelStyle === 2) {
       // Nature Style (Qingshan Lushui)
       bgGradient = ctx.createLinearGradient(0, 0, 0, this.height);
       bgGradient.addColorStop(0, '#87CEEB'); // Sky Blue
       bgGradient.addColorStop(0.6, '#E0F7FA'); // Light Cyan (Horizon)
       bgGradient.addColorStop(1, '#4FC3F7'); // Water reflection hint
-    } else if (this.bgStyle === 3) {
+    } else if (this.currentLevelStyle === 3) {
       // Underwater Style
       bgGradient = ctx.createLinearGradient(0, 0, 0, this.height);
       bgGradient.addColorStop(0, '#0984e3'); // Deep Blue Surface
       bgGradient.addColorStop(1, '#2d3436'); // Dark Depths
-    } else if (this.bgStyle === 4) {
+    } else if (this.currentLevelStyle === 4) {
       // Space Style
       bgGradient = ctx.createRadialGradient(
         this.width / 2, this.height / 2, 0,
@@ -1557,11 +1695,11 @@ export default class Game {
     
     // Grid effect with drift
     ctx.save();
-    if (this.bgStyle === 2) {
+    if (this.currentLevelStyle === 2) {
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)'; // Subtle white for Nature
-    } else if (this.bgStyle === 3) {
+    } else if (this.currentLevelStyle === 3) {
       ctx.strokeStyle = 'rgba(129, 236, 236, 0.1)'; // Faint Cyan for Underwater
-    } else if (this.bgStyle === 4) {
+    } else if (this.currentLevelStyle === 4) {
       ctx.strokeStyle = 'rgba(162, 155, 254, 0.1)'; // Faint Purple for Space
     } else {
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.04)'; // Faint for Neon/Cyber
@@ -1591,6 +1729,7 @@ export default class Game {
       
       if (this.twoPlayerMode) {
         // P1 Controls (Left side)
+
         ctx.textAlign = 'left';
         ctx.fillStyle = '#ffffff'; // P1 Color
         ctx.fillText('P1 (White):', 100, 320);
@@ -1920,15 +2059,48 @@ export default class Game {
     }
     
     if (this.gameOver && !this.won) {
-      ctx.fillStyle = 'rgba(0,0,0,0.6)';
+      // Dark Overlay
+      ctx.fillStyle = 'rgba(0,0,0,0.7)';
       ctx.fillRect(0, 0, this.width, this.height);
-      ctx.fillStyle = '#fff';
-      ctx.font = '36px sans-serif';
+      
+      // Game Over Text
+      ctx.save();
+      ctx.shadowColor = '#ff4d4d';
+      ctx.shadowBlur = 20;
+      ctx.fillStyle = '#ff4d4d';
+      ctx.font = '900 64px "Arial Black", sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText('Game Over', this.width / 2, this.height / 2 - 30);
-      ctx.font = '20px sans-serif';
-      ctx.fillStyle = '#fff';
-      ctx.fillText('Press R to restart • Press ESC to return to level select', this.width / 2, this.height / 2 + 20);
+      ctx.textBaseline = 'middle';
+      ctx.fillText('GAME OVER', this.width / 2, this.height / 2 - 80);
+      ctx.restore();
+
+      // Buttons
+      const btnW = 200;
+      const btnH = 50;
+      const btnX = this.width / 2 - btnW / 2;
+      
+      // RESTART Button
+      const restartY = this.height / 2 + 10;
+      ctx.fillStyle = '#4ade80';
+      ctx.beginPath();
+      ctx.roundRect(btnX, restartY, btnW, btnH, 10);
+      ctx.fill();
+      
+      ctx.fillStyle = '#0f172a';
+      ctx.font = 'bold 20px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('RESTART (R)', this.width / 2, restartY + btnH / 2);
+      
+      // BACK Button
+      const backY = restartY + btnH + 20;
+      ctx.fillStyle = '#94a3b8';
+      ctx.beginPath();
+      ctx.roundRect(btnX, backY, btnW, btnH, 10);
+      ctx.fill();
+      
+      ctx.fillStyle = '#0f172a';
+      ctx.fillText('BACK (ESC)', this.width / 2, backY + btnH / 2);
     } else if (this.gameOver && this.won && this.allLevelsCompleted()) {
       // Hide HUD and OPS elements when showing final completion screen
       const hudEl = document.getElementById('hud');
@@ -2074,26 +2246,71 @@ export default class Game {
     const hudEl = document.getElementById('hud');
     const opsEl = document.getElementById('ops');
     const levelContainerEl = document.getElementById('level-container');
+    const backBtn = document.getElementById('back-btn');
     if (hudEl) hudEl.style.display = 'none';
     if (opsEl) opsEl.style.display = 'none';
     if (levelContainerEl) levelContainerEl.style.display = 'none';
-    
-    // Update total score from high scores (in case it changed)
-    this.totalScore = this.calculateTotalScore();
-    
+    if (backBtn) backBtn.style.display = 'none';
+
     const time = performance.now() / 1000;
-    
-    // 1. Dynamic Background
-    // Deep space/ocean gradient
-    const bgGrad = ctx.createRadialGradient(
-      this.width / 2, this.height / 2, 0,
-      this.width / 2, this.height / 2, this.width
-    );
-    bgGrad.addColorStop(0, '#1e293b');
-    bgGrad.addColorStop(1, '#020617');
+
+    // 1. Dynamic Background based on Style
+    let bgGrad;
+    if (this.bgStyle === 0) { // Neon
+        bgGrad = ctx.createRadialGradient(this.width/2, this.height/2, 0, this.width/2, this.height/2, this.width);
+        bgGrad.addColorStop(0, '#2d1b4e');
+        bgGrad.addColorStop(1, '#0f0518');
+    } else if (this.bgStyle === 1) { // Cyber
+        bgGrad = ctx.createLinearGradient(0, 0, 0, this.height);
+        bgGrad.addColorStop(0, '#0f172a');
+        bgGrad.addColorStop(1, '#1e293b');
+    } else if (this.bgStyle === 2) { // Nature
+        bgGrad = ctx.createLinearGradient(0, 0, 0, this.height);
+        bgGrad.addColorStop(0, '#87CEEB');
+        bgGrad.addColorStop(1, '#E0F7FA');
+    } else if (this.bgStyle === 3) {
+        // Underwater
+        bgGrad = ctx.createLinearGradient(0, 0, 0, this.height);
+        bgGrad.addColorStop(0, '#0984e3');
+        bgGrad.addColorStop(1, '#000000');
+    } else if (this.bgStyle === 4) { // Space
+        bgGrad = ctx.createRadialGradient(this.width/2, this.height/2, 0, this.width/2, this.height/2, this.width);
+        bgGrad.addColorStop(0, '#1e293b');
+        bgGrad.addColorStop(1, '#020617');
+    } else { // Random
+        // Shifting gradient
+        const hue = (time * 20) % 360;
+        bgGrad = ctx.createLinearGradient(0, 0, this.width, this.height);
+        bgGrad.addColorStop(0, `hsl(${hue}, 40%, 20%)`);
+        bgGrad.addColorStop(1, `hsl(${(hue + 60) % 360}, 40%, 10%)`);
+    }
     ctx.fillStyle = bgGrad;
     ctx.fillRect(0, 0, this.width, this.height);
     
+    // Nebula Effects (Only for Space/Neon/Cyber)
+    if (this.bgStyle !== 2) {
+        ctx.save();
+        ctx.globalCompositeOperation = 'screen';
+        // Nebula 1 (Purple/Blue)
+        const neb1X = this.width * 0.3 + Math.sin(time * 0.2) * 100;
+        const neb1Y = this.height * 0.4 + Math.cos(time * 0.3) * 50;
+        const neb1Grad = ctx.createRadialGradient(neb1X, neb1Y, 0, neb1X, neb1Y, 400);
+        neb1Grad.addColorStop(0, 'rgba(76, 29, 149, 0.2)'); // Purple
+        neb1Grad.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = neb1Grad;
+        ctx.fillRect(0, 0, this.width, this.height);
+
+        // Nebula 2 (Teal/Green)
+        const neb2X = this.width * 0.7 + Math.cos(time * 0.25) * 100;
+        const neb2Y = this.height * 0.6 + Math.sin(time * 0.35) * 50;
+        const neb2Grad = ctx.createRadialGradient(neb2X, neb2Y, 0, neb2X, neb2Y, 350);
+        neb2Grad.addColorStop(0, 'rgba(16, 185, 129, 0.15)'); // Emerald
+        neb2Grad.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = neb2Grad;
+        ctx.fillRect(0, 0, this.width, this.height);
+        ctx.restore();
+    }
+
     // Animated Grid
     ctx.save();
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
@@ -2115,14 +2332,49 @@ export default class Game {
     ctx.restore();
     
     // Floating particles (background decoration)
-    for(let i=0; i<20; i++) {
-        const px = (Math.sin(i * 132.1 + time * 0.1) * 0.5 + 0.5) * this.width;
-        const py = (Math.cos(i * 45.3 + time * 0.15) * 0.5 + 0.5) * this.height;
-        const size = (Math.sin(i + time) + 2) * 2;
-        ctx.fillStyle = `rgba(255, 255, 255, ${0.05 + Math.sin(i)*0.02})`;
+    for(let i=0; i<40; i++) {
+        // Drifting upwards
+        const speed = (i % 5 + 1) * 20;
+        const yOffset = (time * speed) % this.height;
+        
+        const px = (Math.sin(i * 132.1) * 0.5 + 0.5) * this.width;
+        let py = (Math.cos(i * 45.3) * 0.5 + 0.5) * this.height - yOffset;
+        if (py < 0) py += this.height; // Wrap around
+        
+        const size = (Math.sin(i + time * 2) + 2) * 1.5;
+        const alpha = 0.1 + Math.sin(i * 10 + time) * 0.05;
+        
+        ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
         ctx.beginPath();
         ctx.arc(px, py, size, 0, Math.PI*2);
         ctx.fill();
+    }
+
+    // Shooting Stars
+    const starTime = time * 0.7; 
+    const starCycle = Math.floor(starTime);
+    const starProgress = starTime - starCycle; // 0 to 1
+    
+    if (starProgress < 0.15) { // Visible for first 15% of cycle
+         // Pseudo-random pos based on cycle
+         const seed = starCycle * 123.45;
+         const sx = (Math.sin(seed) * 0.5 + 0.5) * this.width;
+         const sy = (Math.cos(seed) * 0.5 + 0.5) * this.height * 0.6; 
+         const len = 150;
+         
+         ctx.save();
+         const fade = 1 - (starProgress / 0.15);
+         const grad = ctx.createLinearGradient(sx, sy, sx - len, sy + len);
+         grad.addColorStop(0, `rgba(255, 255, 255, ${fade})`);
+         grad.addColorStop(1, `rgba(255, 255, 255, 0)`);
+         
+         ctx.strokeStyle = grad;
+         ctx.lineWidth = 2;
+         ctx.beginPath();
+         ctx.moveTo(sx, sy);
+         ctx.lineTo(sx - len, sy + len); // Diagonal down-left
+         ctx.stroke();
+         ctx.restore();
     }
 
     // 2. Header Section
@@ -2133,11 +2385,16 @@ export default class Game {
     ctx.shadowColor = '#4ade80';
     ctx.shadowBlur = 20;
     ctx.fillStyle = '#fff';
-    ctx.font = 'bold 40px sans-serif';
+    ctx.font = '900 48px "Arial Black", sans-serif'; // Thicker, more impactful font
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText('SELECT LEVEL', this.width / 2, titleY);
     ctx.shadowBlur = 0;
+    
+    // Style Indicator (Below Title)
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+    ctx.font = 'bold 16px sans-serif';
+    ctx.fillText(`🎨 Style: ${this.bgStyles[this.bgStyle]} (Y)`, this.width / 2, titleY + 40);
     ctx.restore();
     
     // Total Score Pill (Top Right)
@@ -2202,6 +2459,15 @@ export default class Game {
     ctx.fillStyle = '#e2e8f0';
     ctx.font = '13px sans-serif';
     ctx.fillText('Arrows/WASD: Move • Enter: Select • TAB: Toggle Mode', this.width / 2, modeY + modeH + 20);
+    
+    // Back Button (Top Left)
+    ctx.save();
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+    ctx.font = 'bold 16px sans-serif';
+    ctx.fillText('⬅ BACK', 20, 20);
+    ctx.restore();
 
     // 4. Level Grid
     const cols = 3;
@@ -2213,7 +2479,7 @@ export default class Game {
     const gridW = cols * cardW + (cols - 1) * gap;
     const startX = (this.width - gridW) / 2;
     const startY = 180;
-    
+
     for (let i = 1; i < levels.length; i++) {
       const gridIndex = i - 1;
       const col = gridIndex % cols;
@@ -2231,8 +2497,10 @@ export default class Game {
       let scale = 1;
       let lift = 0;
       if (isSelected) {
-        scale = 1.05;
-        lift = -5;
+        // Pulse effect
+        const pulse = Math.sin(time * 5) * 0.02;
+        scale = 1.05 + pulse;
+        lift = -5 + pulse * 10;
       }
       
       const cx = x + cardW/2;
@@ -2248,10 +2516,13 @@ export default class Game {
       if (isSelected) {
         cardGrad.addColorStop(0, '#1e293b');
         cardGrad.addColorStop(1, '#0f172a');
-        ctx.strokeStyle = '#4ade80';
+        
+        // Pulsing border
+        const alpha = 0.6 + Math.sin(time * 5) * 0.4;
+        ctx.strokeStyle = `rgba(74, 222, 128, ${alpha})`;
         ctx.lineWidth = 2;
         ctx.shadowColor = '#4ade80';
-        ctx.shadowBlur = 15;
+        ctx.shadowBlur = 15 + Math.sin(time * 5) * 5;
       } else {
         cardGrad.addColorStop(0, 'rgba(30, 41, 59, 0.6)');
         cardGrad.addColorStop(1, 'rgba(15, 23, 36, 0.6)');
@@ -2322,18 +2593,29 @@ export default class Game {
   
   _initMenuPlayers() {
     this.menuPlayers = [];
-    // Create 2 players
-    const p1 = new Player(100, this.height - 100);
+    
+    // Calculate positions for the toggle button platform
+    const modeY = this.height / 2 + 130;
+    const modeW = 260;
+    const modeX = this.width / 2 - modeW / 2;
+    const sliderW = modeW / 2;
+    
+    // Create 2 players standing on the toggle buttons
+    // P1 on "1 PLAYER" side (Left)
+    const p1 = new Player(modeX + sliderW/2 - 10, modeY - 20);
     p1.color = '#4ade80'; // Green
     p1.isCpu = true;
     p1.cpuTimer = 0;
     p1.cpuActionDuration = 0;
+    p1.startDelay = 1.0; // Wait 1s before moving
     
-    const p2 = new Player(this.width - 100, this.height - 100);
+    // P2 on "2 PLAYERS" side (Right)
+    const p2 = new Player(modeX + sliderW * 1.5 - 10, modeY - 20);
     p2.color = '#ffd166'; // Yellow
     p2.isCpu = true;
     p2.cpuTimer = 0;
     p2.cpuActionDuration = 0;
+    p2.startDelay = 1.0; // Wait 1s before moving
     
     this.menuPlayers.push(p1, p2);
   }
@@ -2343,6 +2625,31 @@ export default class Game {
     
     // Update menu players
     this.menuPlayers.forEach(p => {
+      // Handle start delay
+      if (p.startDelay > 0) {
+        p.startDelay -= dt;
+        p.cpuInput.left = false;
+        p.cpuInput.right = false;
+        p.cpuInput.jump = false;
+        p.cpuInput.dash = false;
+        
+        // Still update physics so they fall/stand
+        p.update(dt, this);
+        
+        // Keep them on the platform during delay
+        const modeY = this.height / 2 + 130;
+        const modeW = 260;
+        const modeX = this.width / 2 - modeW / 2;
+        
+        if (p.pos.y + p.h >= modeY && p.pos.y + p.h <= modeY + 15 &&
+            p.pos.x + p.w > modeX && p.pos.x < modeX + modeW) {
+            p.pos.y = modeY - p.h;
+            p.vel.y = 0;
+            p.onGround = true;
+        }
+        return;
+      }
+
       // Simple AI
       p.cpuTimer -= dt;
       if (p.cpuTimer <= 0) {
@@ -2385,7 +2692,288 @@ export default class Game {
         p.vel.y = 0;
         p.onGround = true;
       }
+
+      // Hidden Platform (Mode Toggle Button)
+      // Allow menu players to stand on the 1P/2P toggle
+      const modeY = this.height / 2 + 130;
+      const modeW = 260;
+      const modeX = this.width / 2 - modeW / 2;
+      
+      // Simple platform collision (one-way from top)
+      if (p.vel.y >= 0 && // Falling
+          p.pos.y + p.h >= modeY && // Feet below top
+          p.pos.y + p.h <= modeY + 15 && // Feet within snap range
+          p.pos.x + p.w > modeX && // Horizontal overlap
+          p.pos.x < modeX + modeW) {
+            
+          p.pos.y = modeY - p.h;
+          p.vel.y = 0;
+          p.onGround = true;
+      }
     });
+  }
+  
+  handleMenuMouseMove(x, y) {
+    if (!this.showMainMenu) return false;
+
+    let hovering = false;
+
+    // Check Menu Options
+    const options = ['START GAME', 'TUTORIAL'];
+    const startY = this.height / 2 + 10;
+    const gap = 50;
+    
+    for (let i = 0; i < options.length; i++) {
+      const optY = startY + i * gap;
+      // Approximate text bounds (centered)
+      const halfW = 120; // 240px wide
+      const halfH = 20;  // 40px high
+      
+      if (x >= this.width / 2 - halfW && x <= this.width / 2 + halfW &&
+          y >= optY - halfH && y <= optY + halfH) {
+        this.mainMenuSelection = i;
+        hovering = true;
+      }
+    }
+
+    // Check Mode Toggle
+    const modeY = this.height / 2 + 130;
+    const modeW = 260;
+    const modeH = 36;
+    const modeX = this.width / 2 - modeW / 2;
+
+    if (x >= modeX && x <= modeX + modeW &&
+        y >= modeY && y <= modeY + modeH) {
+      hovering = true;
+    }
+
+    return hovering;
+  }
+
+  handleMenuClick(x, y) {
+    if (!this.showMainMenu) return;
+
+    // Check Menu Options
+    const options = ['START GAME', 'TUTORIAL'];
+    const startY = this.height / 2 + 10;
+    const gap = 50;
+    
+    for (let i = 0; i < options.length; i++) {
+      const optY = startY + i * gap;
+      const halfW = 120;
+      const halfH = 20;
+      
+      if (x >= this.width / 2 - halfW && x <= this.width / 2 + halfW &&
+          y >= optY - halfH && y <= optY + halfH) {
+        // Execute selection
+        if (i === 0) { // START GAME
+           this.showMainMenu = false;
+           this.showLevelSelect = true;
+           if (this.audio) this.audio.playSfx('select');
+        } else if (i === 1) { // TUTORIAL
+           this.showMainMenu = false;
+           this.loadLevel(0);
+           if (this.audio) this.audio.playSfx('select');
+        }
+        return;
+      }
+    }
+
+    // Check Mode Toggle
+    const modeY = this.height / 2 + 130;
+    const modeW = 260;
+    const modeH = 36;
+    const modeX = this.width / 2 - modeW / 2;
+
+    if (x >= modeX && x <= modeX + modeW &&
+        y >= modeY && y <= modeY + modeH) {
+      this.twoPlayerMode = !this.twoPlayerMode;
+      if (this.audio) this.audio.playSfx('select');
+    }
+  }
+  
+  handleLevelSelectMouseMove(x, y) {
+    if (!this.showLevelSelect) return false;
+    
+    let hovering = false;
+
+    // 1. Check Back Button (Top Left)
+    // Approx bounds: x: 20-100, y: 20-45
+    // Expanded for mobile touch
+    if (x >= 0 && x <= 150 && y >= 0 && y <= 80) {
+      hovering = true;
+    }
+
+    // 2. Check Style Toggle (Center, below title)
+    // Approx bounds: x: width/2 - 100, width/2 + 100, y: 65-95 (titleY=40 + 40 offset approx)
+    const titleY = 40;
+    const styleY = titleY + 40;
+    if (x >= this.width/2 - 100 && x <= this.width/2 + 100 && y >= styleY - 15 && y <= styleY + 15) {
+      hovering = true;
+    }
+
+    // 3. Check Mode Toggle
+    const modeY = 100;
+    const modeW = 300;
+    const modeH = 36;
+    const modeX = this.width / 2 - modeW / 2;
+    
+    if (x >= modeX && x <= modeX + modeW &&
+        y >= modeY && y <= modeY + modeH) {
+      hovering = true;
+    }
+
+    // 4. Check Level Cards
+    const cols = 3;
+    const cardW = 260;
+    const cardH = 120;
+    const gap = 20;
+    const gridW = cols * cardW + (cols - 1) * gap;
+    const startX = (this.width - gridW) / 2;
+    const startY = 180;
+
+    for (let i = 1; i < levels.length; i++) {
+      const gridIndex = i - 1;
+      const col = gridIndex % cols;
+      const row = Math.floor(gridIndex / cols);
+      
+      const cx = startX + col * (cardW + gap);
+      const cy = startY + row * (cardH + gap);
+      
+      if (x >= cx && x <= cx + cardW &&
+          y >= cy && y <= cy + cardH) {
+        this.selectedLevelIndex = i;
+        hovering = true;
+      }
+    }
+
+    return hovering;
+  }
+
+  handleLevelSelectClick(x, y) {
+    if (!this.showLevelSelect) return;
+
+    // 1. Check Back Button
+    // Expanded for mobile touch
+    if (x >= 0 && x <= 150 && y >= 0 && y <= 80) {
+      this.showLevelSelect = false;
+      this.showMainMenu = true;
+      if (this.audio) this.audio.playSfx('select');
+      return;
+    }
+
+    // 2. Check Style Toggle
+    const titleY = 40;
+    const styleY = titleY + 40;
+    if (x >= this.width/2 - 100 && x <= this.width/2 + 100 && y >= styleY - 15 && y <= styleY + 15) {
+      this.bgStyle = (this.bgStyle + 1) % this.bgStyles.length;
+      this._initScenery();
+      if (this.audio) this.audio.playSfx('select');
+      return;
+    }
+
+    // 3. Check Mode Toggle
+    const modeY = 100;
+    const modeW = 300;
+    const modeH = 36;
+    const modeX = this.width / 2 - modeW / 2;
+    
+    if (x >= modeX && x <= modeX + modeW &&
+        y >= modeY && y <= modeY + modeH) {
+      this.twoPlayerMode = !this.twoPlayerMode;
+      if (this.audio) this.audio.playSfx('select');
+      return;
+    }
+
+    // 4. Check Level Cards
+    const cols = 3;
+    const cardW = 260;
+    const cardH = 120;
+    const gap = 20;
+    const gridW = cols * cardW + (cols - 1) * gap;
+    const startX = (this.width - gridW) / 2;
+    const startY = 180;
+
+    for (let i = 1; i < levels.length; i++) {
+      const gridIndex = i - 1;
+      const col = gridIndex % cols;
+      const row = Math.floor(gridIndex / cols);
+      
+      const cx = startX + col * (cardW + gap);
+      const cy = startY + row * (cardH + gap);
+      
+      if (x >= cx && x <= cx + cardW &&
+          y >= cy && y <= cy + cardH) {
+        // Start Level
+        if (this.audio) {
+            this.audio.resume();
+            this.audio.playSfx('select');
+        }
+        this.currentLevelIndex = i;
+        this.score = 0;
+        this.levelStartScore = 0;
+        this.loadLevel(i);
+        return;
+      }
+    }
+  }
+
+  handleGameClick(x, y) {
+    if (this.showMainMenu || this.showLevelSelect) return;
+
+    // Game Over Screen Buttons
+    if (this.gameOver && !this.won) {
+      const btnW = 200;
+      const btnH = 50;
+      const btnX = this.width / 2 - btnW / 2;
+      
+      // Restart (R)
+      const restartY = this.height / 2 + 10;
+      if (x >= btnX && x <= btnX + btnW && y >= restartY && y <= restartY + btnH) {
+        this.reset();
+        if (this.audio) this.audio.playSfx('select');
+        return;
+      }
+      
+      // Back (ESC)
+      const backY = this.height / 2 + 80;
+      if (x >= btnX && x <= btnX + btnW && y >= backY && y <= backY + btnH) {
+        if (this.currentLevelIndex === 0) {
+          this.showLevelSelect = false;
+          this.showMainMenu = true;
+        } else {
+          this.showLevelSelect = true;
+        }
+        this.paused = false;
+        this.gameOver = false;
+        this.won = false;
+        if (this.audio) this.audio.playSfx('select');
+        return;
+      }
+    }
+  }
+
+  handleGameMouseMove(x, y) {
+    if (this.showMainMenu || this.showLevelSelect) return false;
+
+    if (this.gameOver && !this.won) {
+      const btnW = 200;
+      const btnH = 50;
+      const btnX = this.width / 2 - btnW / 2;
+      
+      // Restart
+      const restartY = this.height / 2 + 10;
+      if (x >= btnX && x <= btnX + btnW && y >= restartY && y <= restartY + btnH) {
+        return true;
+      }
+      
+      // Back
+      const backY = this.height / 2 + 80;
+      if (x >= btnX && x <= btnX + btnW && y >= backY && y <= backY + btnH) {
+        return true;
+      }
+    }
+    return false;
   }
   
   _renderMainMenu(ctx) {
@@ -2393,9 +2981,11 @@ export default class Game {
     const hudEl = document.getElementById('hud');
     const opsEl = document.getElementById('ops');
     const levelContainerEl = document.getElementById('level-container');
+    const backBtn = document.getElementById('back-btn');
     if (hudEl) hudEl.style.display = 'none';
     if (opsEl) opsEl.style.display = 'none';
     if (levelContainerEl) levelContainerEl.style.display = 'none';
+    if (backBtn) backBtn.style.display = 'none';
 
     const time = performance.now() / 1000;
 

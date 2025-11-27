@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
     <title>Mini Flat Heroes — Demo</title>
     <link rel="stylesheet" href="styles.css" />
     <!-- Howler is optional; we use Web Audio in src/audio.js but keep Howler CDN if you prefer it -->
@@ -14,6 +14,8 @@
       
       <canvas id="gameCanvas" width="900" height="600"></canvas>
       
+      <button id="back-btn">⬅ BACK</button>
+
       <div id="level-container">
         <div id="level">🚩 Level 1: Tutorial Arena</div>
       </div>
@@ -43,9 +45,31 @@
             </div>
           </div>
         </div>
+        
     </div>
 
     <script type="module" src="src/mobile-input.js"></script>
     <script type="module" src="src/main.js"></script>
+        <!-- Mobile Controls -->
+        <div id="mobile-controls">
+          <div id="joystick-area">
+            <div id="joystick-base">
+              <div id="joystick-stick"></div>
+            </div>
+          </div>
+          <div class="action-buttons">
+            <button id="btn-dash" class="control-btn">💨</button>
+          </div>
+        </div>
+
+        <!-- Mobile In-Game Tools (Top Right) -->
+        <div id="mobile-tools">
+          <button id="mt-restart">🔄</button>
+          <button id="mt-pause">⏸️</button>
+          <button id="mt-style">🎨</button>
+          <button id="mt-mute">🔊</button>
+          <button id="mt-exit">🚪</button>
+        </div>
+    </div>
   </body>
 </html>
