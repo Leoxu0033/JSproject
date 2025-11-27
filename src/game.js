@@ -83,6 +83,11 @@ export default class Game {
     this.winAnimationDuration = 2.0; // Duration of win animation
     this.completedLevels = this.loadCompletedLevels(); // Track which levels have been completed
     
+    // Level Intro
+    this.showLevelIntro = false;
+    this.levelIntroTimer = 0;
+    this.levelIntroDuration = 2.0;
+    
     // Level selection menu
     this.showLevelSelect = true; // Start with level select menu
     this.selectedLevelIndex = 1; // Currently selected level in menu (Start from 1)
@@ -132,14 +137,12 @@ export default class Game {
 
   startSinglePlayer() {
     this.twoPlayerMode = false;
-    this.showMainMenu = false; // Ensure main menu is hidden
     this.selectedLevelIndex = 0;
     this.loadLevel(0);
   }
 
   startTwoPlayer() {
     this.twoPlayerMode = true;
-    this.showMainMenu = false; // Ensure main menu is hidden
     this.selectedLevelIndex = 0;
     this.loadLevel(0);
   }
@@ -472,23 +475,10 @@ export default class Game {
     
     // Initialize scenery
     this._initScenery();
-    
-    // Show Level Name Animation
-    const levelContainer = document.getElementById('level-container');
-    if (levelContainer) {
-      // Reset first
-      levelContainer.className = '';
-      void levelContainer.offsetWidth; // Trigger reflow
-      
-      // Add animation class
-      levelContainer.classList.add('level-start');
-      
-      // Hide after 2 seconds
-      if (this._levelNameTimeout) clearTimeout(this._levelNameTimeout);
-      this._levelNameTimeout = setTimeout(() => {
-        levelContainer.classList.remove('level-start');
-      }, 2000);
-    }
+
+    // Start Level Intro
+    this.showLevelIntro = true;
+    this.levelIntroTimer = this.levelIntroDuration;
   }
 
   _initScenery() {
@@ -1014,6 +1004,18 @@ export default class Game {
       for (const p of this.particles) p.update(dt);
       this.particles = this.particles.filter((p) => p.alive);
       return; // Don't update game logic when in menu
+    }
+
+    // Handle Level Intro
+    if (this.showLevelIntro) {
+      this.levelIntroTimer -= dt;
+      if (this.levelIntroTimer <= 0) {
+        this.showLevelIntro = false;
+      }
+      // Update particles for visual flair during intro
+      for (const p of this.particles) p.update(dt);
+      this.particles = this.particles.filter((p) => p.alive);
+      return;
     }
     
     // Update particles even during win animation
@@ -1644,7 +1646,7 @@ export default class Game {
     const hudEl = document.getElementById('hud');
     const opsEl = document.getElementById('ops');
     const levelContainerEl = document.getElementById('level-container');
-    // const backBtn = document.getElementById('back-btn');
+    const backBtn = document.getElementById('back-btn');
     if (hudEl) hudEl.style.display = '';
     if (opsEl) opsEl.style.display = '';
     if (levelContainerEl) levelContainerEl.style.display = '';
@@ -1696,7 +1698,7 @@ export default class Game {
       bgGradient = ctx.createLinearGradient(0, 0, 0, this.height);
       bgGradient.addColorStop(0, '#0984e3'); // Deep Blue Surface
       bgGradient.addColorStop(1, '#2d3436'); // Dark Depths
-    } else {
+    } else if (this.currentLevelStyle === 4) {
       // Space Style
       bgGradient = ctx.createRadialGradient(
         this.width / 2, this.height / 2, 0,
@@ -1704,11 +1706,6 @@ export default class Game {
       );
       bgGradient.addColorStop(0, '#2d3436');
       bgGradient.addColorStop(1, '#000000');
-    }
-    
-    // Fallback if gradient is undefined
-    if (!bgGradient) {
-       bgGradient = '#0f172a';
     }
     
     ctx.fillStyle = bgGradient;
@@ -1997,6 +1994,30 @@ export default class Game {
     for (const p of this.particles) p.draw(ctx);
 
     ctx.restore();
+
+    // Level Intro Overlay
+    if (this.showLevelIntro) {
+      const alpha = Math.min(1, this.levelIntroTimer * 2); // Fade out
+      ctx.save();
+      ctx.fillStyle = `rgba(0, 0, 0, ${0.7 * alpha})`;
+      ctx.fillRect(0, 0, this.width, this.height);
+      
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 48px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.shadowColor = '#4ade80';
+      ctx.shadowBlur = 20;
+      ctx.fillText(this.currentLevel.name, this.width / 2, this.height / 2);
+      ctx.shadowBlur = 0;
+      
+      ctx.font = 'bold 24px sans-serif';
+      ctx.fillStyle = '#4ade80';
+      ctx.fillText(`LEVEL ${this.currentLevelIndex}`, this.width / 2, this.height / 2 - 50);
+      
+      ctx.restore();
+    }
 
     // flash overlay (drawn without shake)
     if (this.flashTimer > 0) {
@@ -2474,10 +2495,10 @@ export default class Game {
     ctx.textBaseline = 'middle';
     
     ctx.fillStyle = !this.twoPlayerMode ? '#fff' : '#cbd5e1';
-    ctx.fillText('1 PLAYER', modeX + modeW/4, modeY + modeH/2);
+    ctx.fillText('1 PLAYER', modeX + sliderW/4, modeY + modeH/2);
     
     ctx.fillStyle = this.twoPlayerMode ? '#fff' : '#cbd5e1';
-    ctx.fillText('2 PLAYERS', modeX + modeW*0.75, modeY + modeH/2);
+    ctx.fillText('2 PLAYERS', modeX + sliderW * 3/4, modeY + modeH/2);
     
     // Instructions
     ctx.fillStyle = '#e2e8f0';
