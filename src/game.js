@@ -83,11 +83,6 @@ export default class Game {
     this.winAnimationDuration = 2.0; // Duration of win animation
     this.completedLevels = this.loadCompletedLevels(); // Track which levels have been completed
     
-    // Level Intro
-    this.showLevelIntro = false;
-    this.levelIntroTimer = 0;
-    this.levelIntroDuration = 2.0;
-    
     // Level selection menu
     this.showLevelSelect = true; // Start with level select menu
     this.selectedLevelIndex = 1; // Currently selected level in menu (Start from 1)
@@ -475,10 +470,6 @@ export default class Game {
     
     // Initialize scenery
     this._initScenery();
-
-    // Start Level Intro
-    this.showLevelIntro = true;
-    this.levelIntroTimer = this.levelIntroDuration;
   }
 
   _initScenery() {
@@ -1004,18 +995,6 @@ export default class Game {
       for (const p of this.particles) p.update(dt);
       this.particles = this.particles.filter((p) => p.alive);
       return; // Don't update game logic when in menu
-    }
-
-    // Handle Level Intro
-    if (this.showLevelIntro) {
-      this.levelIntroTimer -= dt;
-      if (this.levelIntroTimer <= 0) {
-        this.showLevelIntro = false;
-      }
-      // Update particles for visual flair during intro
-      for (const p of this.particles) p.update(dt);
-      this.particles = this.particles.filter((p) => p.alive);
-      return;
     }
     
     // Update particles even during win animation
@@ -1995,30 +1974,6 @@ export default class Game {
 
     ctx.restore();
 
-    // Level Intro Overlay
-    if (this.showLevelIntro) {
-      const alpha = Math.min(1, this.levelIntroTimer * 2); // Fade out
-      ctx.save();
-      ctx.fillStyle = `rgba(0, 0, 0, ${0.7 * alpha})`;
-      ctx.fillRect(0, 0, this.width, this.height);
-      
-      ctx.globalAlpha = alpha;
-      ctx.fillStyle = '#fff';
-      ctx.font = 'bold 48px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.shadowColor = '#4ade80';
-      ctx.shadowBlur = 20;
-      ctx.fillText(this.currentLevel.name, this.width / 2, this.height / 2);
-      ctx.shadowBlur = 0;
-      
-      ctx.font = 'bold 24px sans-serif';
-      ctx.fillStyle = '#4ade80';
-      ctx.fillText(`LEVEL ${this.currentLevelIndex}`, this.width / 2, this.height / 2 - 50);
-      
-      ctx.restore();
-    }
-
     // flash overlay (drawn without shake)
     if (this.flashTimer > 0) {
       const alpha = Math.max(0, this.flashTimer / 0.12);
@@ -2495,10 +2450,10 @@ export default class Game {
     ctx.textBaseline = 'middle';
     
     ctx.fillStyle = !this.twoPlayerMode ? '#fff' : '#cbd5e1';
-    ctx.fillText('1 PLAYER', modeX + sliderW/4, modeY + modeH/2);
+    ctx.fillText('1 PLAYER', modeX + modeW/4, modeY + modeH/2);
     
     ctx.fillStyle = this.twoPlayerMode ? '#fff' : '#cbd5e1';
-    ctx.fillText('2 PLAYERS', modeX + sliderW * 3/4, modeY + modeH/2);
+    ctx.fillText('2 PLAYERS', modeX + modeW*0.75, modeY + modeH/2);
     
     // Instructions
     ctx.fillStyle = '#e2e8f0';
