@@ -470,6 +470,23 @@ export default class Game {
     
     // Initialize scenery
     this._initScenery();
+    
+    // Show Level Name Animation
+    const levelContainer = document.getElementById('level-container');
+    if (levelContainer) {
+      // Reset first
+      levelContainer.className = '';
+      void levelContainer.offsetWidth; // Trigger reflow
+      
+      // Add animation class
+      levelContainer.classList.add('level-start');
+      
+      // Hide after 2 seconds
+      if (this._levelNameTimeout) clearTimeout(this._levelNameTimeout);
+      this._levelNameTimeout = setTimeout(() => {
+        levelContainer.classList.remove('level-start');
+      }, 2000);
+    }
   }
 
   _initScenery() {
@@ -1625,7 +1642,7 @@ export default class Game {
     const hudEl = document.getElementById('hud');
     const opsEl = document.getElementById('ops');
     const levelContainerEl = document.getElementById('level-container');
-    const backBtn = document.getElementById('back-btn');
+    // const backBtn = document.getElementById('back-btn');
     if (hudEl) hudEl.style.display = '';
     if (opsEl) opsEl.style.display = '';
     if (levelContainerEl) levelContainerEl.style.display = '';

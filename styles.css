@@ -22,9 +22,8 @@ body{
   width: 900px;
   height: 600px;
   max-width: 100%;
-  max-height: calc(100vh - 80px); /* Leave space for top bar */
-  max-height: calc(100dvh - 80px);
-  margin-top: 40px; /* Push down slightly */
+  max-height: 100vh;
+  max-height: 100dvh; /* Use dynamic viewport height if supported */
 }
 canvas{
   display:block;
@@ -38,12 +37,14 @@ canvas{
 
 #level-container {
   position: absolute;
-  top: -50px; /* Place above the canvas */
+  top: 20px;
   left: 0;
   width: 100%;
   text-align: center;
   pointer-events: none;
   z-index: 20;
+  opacity: 0; /* Hidden by default, shown via JS animation */
+  transition: all 0.5s ease;
 }
 #level {
   font-size: 24px;
@@ -55,6 +56,22 @@ canvas{
   padding: 4px 12px;
   border-radius: 12px;
   backdrop-filter: blur(4px);
+  transition: all 0.5s ease;
+}
+
+/* Level Start Animation State */
+#level-container.level-start {
+  top: 40%;
+  opacity: 1;
+  transform: scale(1.2);
+}
+
+#level-container.level-start #level {
+  font-size: 32px;
+  padding: 15px 30px;
+  background: rgba(0, 0, 0, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 0 30px rgba(0,0,0,0.5);
 }
 
 #hud{
