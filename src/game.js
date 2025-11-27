@@ -132,12 +132,14 @@ export default class Game {
 
   startSinglePlayer() {
     this.twoPlayerMode = false;
+    this.showMainMenu = false; // Ensure main menu is hidden
     this.selectedLevelIndex = 0;
     this.loadLevel(0);
   }
 
   startTwoPlayer() {
     this.twoPlayerMode = true;
+    this.showMainMenu = false; // Ensure main menu is hidden
     this.selectedLevelIndex = 0;
     this.loadLevel(0);
   }
@@ -1694,7 +1696,7 @@ export default class Game {
       bgGradient = ctx.createLinearGradient(0, 0, 0, this.height);
       bgGradient.addColorStop(0, '#0984e3'); // Deep Blue Surface
       bgGradient.addColorStop(1, '#2d3436'); // Dark Depths
-    } else if (this.currentLevelStyle === 4) {
+    } else {
       // Space Style
       bgGradient = ctx.createRadialGradient(
         this.width / 2, this.height / 2, 0,
@@ -1702,6 +1704,11 @@ export default class Game {
       );
       bgGradient.addColorStop(0, '#2d3436');
       bgGradient.addColorStop(1, '#000000');
+    }
+    
+    // Fallback if gradient is undefined
+    if (!bgGradient) {
+       bgGradient = '#0f172a';
     }
     
     ctx.fillStyle = bgGradient;
