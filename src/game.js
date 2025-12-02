@@ -69,6 +69,7 @@ export default class Game {
     // shared input already initialized in input.js
     this.input = input;
     this.particles = [];
+    this.floatingTexts = [];
     this.score = 0;
     this.gameOver = false;
     
@@ -82,7 +83,7 @@ export default class Game {
     this.winAnimationTimer = 0;
     this.winAnimationDuration = 2.0; // Duration of win animation
     this.levelIntroTimer = 0;
-    this.levelIntroDuration = 2.0; // Duration of level intro animation
+    this.levelIntroDuration = 1.0; // Duration of level intro animation
     this.completedLevels = this.loadCompletedLevels(); // Track which levels have been completed
     
     // Level selection menu
@@ -1004,6 +1005,16 @@ export default class Game {
     for (const p of this.particles) p.update(dt);
     this.particles = this.particles.filter((p) => p.alive);
     
+    // Update floating texts
+    for (let i = this.floatingTexts.length - 1; i >= 0; i--) {
+      const ft = this.floatingTexts[i];
+      ft.life -= dt;
+      ft.y -= 40 * dt; // Float up
+      if (ft.life <= 0) {
+        this.floatingTexts.splice(i, 1);
+      }
+    }
+    
     // Update level intro timer
     if (this.levelIntroTimer > 0) {
       this.levelIntroTimer -= dt;
@@ -1447,11 +1458,32 @@ export default class Game {
             
             this.score += scoreBonus;
             
-            // Show effect text (using flash color as hint)
+            // Show effect text and visuals
             if (effectText) {
                 this.flash(particleColor, 0.15);
+                // Add floating text for special effect
+                this.floatingTexts.push({
+                    x: en.pos.x + en.w / 2,
+                    y: en.pos.y,
+                    text: effectText,
+                    color: particleColor,
+                    life: 1.2
+                });
+                // More particles for special enemies
+                this.spawnParticles(en.pos.x + en.w / 2, en.pos.y + en.h / 2, particleColor, 30);
+                this.screenShake(8, 0.25);
             } else {
                 this.flash('#ffffff', 0.08);
+                // Add floating score for normal enemies
+                this.floatingTexts.push({
+                    x: en.pos.x + en.w / 2,
+                    y: en.pos.y,
+                    text: `+${scoreBonus}`,
+                    color: '#fff',
+                    life: 0.8
+                });
+                this.spawnParticles(en.pos.x + en.w / 2, en.pos.y + en.h / 2, particleColor, 15);
+                this.screenShake(4, 0.15);
             }
 
             // Play score sound for bonus
@@ -1461,17 +1493,11 @@ export default class Game {
               }
             }, 50);
             
-            // spawn particles
-            this.spawnParticles(en.pos.x + en.w / 2, en.pos.y + en.h / 2, particleColor, 18);
-            
             // If player was falling, give a small bounce
             if (p.vel.y > 0) {
               const bounce = Math.min(300, Math.abs(p.vel.y) * 0.3 + 100);
               p.vel.y = -bounce;
             }
-            
-            // small screen shake
-            this.screenShake(4, 0.15);
           }
         }
       }
@@ -1981,6 +2007,22 @@ export default class Game {
 
     // draw particles (on top of entities)
     for (const p of this.particles) p.draw(ctx);
+
+    // draw floating texts
+    ctx.save();
+    for (const ft of this.floatingTexts) {
+      ctx.globalAlpha = Math.min(1, ft.life * 2);
+      ctx.fillStyle = ft.color;
+      ctx.font = '900 24px "Arial Black", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.shadowColor = ft.color;
+      ctx.shadowBlur = 10;
+      ctx.strokeStyle = 'rgba(0,0,0,0.5)';
+      ctx.lineWidth = 4;
+      ctx.strokeText(ft.text, ft.x, ft.y);
+      ctx.fillText(ft.text, ft.x, ft.y);
+    }
+    ctx.restore();
 
     ctx.restore();
 
