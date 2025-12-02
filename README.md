@@ -1,6 +1,6 @@
 # Mini Flat Heroes — Survival Platformer Game
 
-[![Play Game](https://img.shields.io/badge/Play-Game-success?style=for-the-badge&logo=html5)](https://leoxu0033.github.io/JSproject/)
+<center>[![Play Game](https://img.shields.io/badge/Play-Game-success?style=for-the-badge&logo=html5)](https://leoxu0033.github.io/JSproject/)<center>
 
 A minimalist survival platformer game built with vanilla JavaScript, HTML5 Canvas, and ES6 modules. Survive waves of enemies across 9 challenging levels!
 
