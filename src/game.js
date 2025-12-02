@@ -82,7 +82,7 @@ export default class Game {
     this.winAnimationTimer = 0;
     this.winAnimationDuration = 2.0; // Duration of win animation
     this.levelIntroTimer = 0;
-    this.levelIntroDuration = 3.0; // Duration of level intro animation
+    this.levelIntroDuration = 2.0; // Duration of level intro animation
     this.completedLevels = this.loadCompletedLevels(); // Track which levels have been completed
     
     // Level selection menu
@@ -2447,6 +2447,7 @@ export default class Game {
     const modeW = 300;
     const modeH = 36;
     const modeX = this.width / 2 - modeW / 2;
+    const sliderW = modeW / 2;
     
     // Toggle Container
     ctx.fillStyle = 'rgba(15, 23, 42, 0.8)';

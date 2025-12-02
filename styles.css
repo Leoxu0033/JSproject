@@ -265,7 +265,8 @@ canvas{
   display: flex;
   gap: 15px;
   pointer-events: auto; /* Re-enable pointer events for buttons */
-  margin-bottom: 30px; /* Align with joystick center roughly */
+  margin-bottom: 60px; /* Align with joystick center roughly */
+  margin-right: 20px;
 }
 
 /* Mobile Tools (Top Right) */
@@ -343,16 +344,25 @@ canvas{
 
   /* Larger Dash Button */
   #btn-dash {
-    width: 80px;
-    height: 80px;
-    font-size: 32px;
-    background: rgba(255, 209, 102, 0.3);
-    border-color: rgba(255, 209, 102, 0.6);
+    width: 90px;
+    height: 90px;
+    font-size: 40px;
+    background: radial-gradient(circle at 30% 30%, rgba(255, 209, 102, 0.4), rgba(255, 209, 102, 0.1));
+    border: 2px solid rgba(255, 209, 102, 0.5);
+    border-radius: 50%;
+    backdrop-filter: blur(8px);
+    box-shadow: 0 0 20px rgba(255, 209, 102, 0.2), inset 0 0 10px rgba(255, 209, 102, 0.1);
+    transition: all 0.1s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-left: 4px; /* Visual centering for emoji */
   }
   
   #btn-dash:active, #btn-dash.active {
-    background: rgba(255, 209, 102, 0.6);
+    background: radial-gradient(circle at 50% 50%, rgba(255, 209, 102, 0.6), rgba(255, 209, 102, 0.3));
     transform: scale(0.92);
-    box-shadow: 0 0 15px rgba(255, 209, 102, 0.4);
+    box-shadow: 0 0 25px rgba(255, 209, 102, 0.5), inset 0 0 15px rgba(255, 209, 102, 0.3);
+    border-color: rgba(255, 209, 102, 0.8);
   }
 }
