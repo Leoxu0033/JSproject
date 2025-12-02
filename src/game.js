@@ -81,6 +81,8 @@ export default class Game {
     this.won = false;
     this.winAnimationTimer = 0;
     this.winAnimationDuration = 2.0; // Duration of win animation
+    this.levelIntroTimer = 0;
+    this.levelIntroDuration = 3.0; // Duration of level intro animation
     this.completedLevels = this.loadCompletedLevels(); // Track which levels have been completed
     
     // Level selection menu
@@ -344,6 +346,7 @@ export default class Game {
     this.perfectClear = false; // Reset perfect clear flag
     this.newRecord = false; // Reset new record flag
     this.winAnimationTimer = 0;
+    this.levelIntroTimer = this.levelIntroDuration;
     // Reset tadpole batch spawning for new level
     this._tadpoleTimer = 0;
     this._tadpoleBatches = []; // Clear all active batches
@@ -1001,6 +1004,13 @@ export default class Game {
     for (const p of this.particles) p.update(dt);
     this.particles = this.particles.filter((p) => p.alive);
     
+    // Update level intro timer
+    if (this.levelIntroTimer > 0) {
+      this.levelIntroTimer -= dt;
+      // Freeze game logic during intro
+      return;
+    }
+    
     // Handle win animation
     if (this.won && this.winAnimationTimer > 0) {
       this.winAnimationTimer -= dt;
@@ -1629,7 +1639,7 @@ export default class Game {
     if (hudEl) hudEl.style.display = '';
     if (opsEl) opsEl.style.display = '';
     if (levelContainerEl) levelContainerEl.style.display = '';
-    if (backBtn) backBtn.style.display = 'block';
+    if (backBtn) backBtn.style.display = '';
 
     // update screen shake offsets
     if (this.shakeTimer > 0) {
@@ -1985,77 +1995,92 @@ export default class Game {
       this.flashTimer = Math.max(0, this.flashTimer - this.timestep);
     }
 
-    // Win animation
-    if (this.won && this.winAnimationTimer > 0) {
-      const progress = 1 - (this.winAnimationTimer / this.winAnimationDuration);
-      const alpha = Math.min(1, progress * 1.5);
+    // Level Intro Animation
+    if (this.levelIntroTimer > 0 && !this.gameOver && !this.won) {
+      const t = this.levelIntroTimer;
+      const duration = this.levelIntroDuration;
+      const progress = 1 - (t / duration); // 0 to 1
       
-      // Pulsing background
-      ctx.fillStyle = `rgba(0, 255, 100, ${alpha * 0.3})`;
-      ctx.fillRect(0, 0, this.width, this.height);
-      
-      // Win text with animation
-      ctx.fillStyle = '#fff';
-      ctx.font = 'bold 48px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      
-      const scale = 1 + Math.sin(progress * Math.PI * 4) * 0.1;
       ctx.save();
-      ctx.translate(this.width / 2, this.height / 2 - 40);
-      ctx.scale(scale, scale);
       
-      if (this.perfectClear) {
-        // Gold text for perfect clear
-        ctx.fillStyle = '#ffd700';
-        ctx.shadowColor = '#ffd700';
-        ctx.shadowBlur = 20;
-        ctx.fillText('PERFECT CLEAR!', 0, -30);
+      // 1. Level Name (First part)
+      if (progress < 0.65) {
+        // Fade in/out
+        let alpha = 1;
+        if (progress < 0.1) alpha = progress * 10;
+        else if (progress > 0.55) alpha = (0.65 - progress) * 10;
         
-        ctx.font = 'bold 36px sans-serif';
-        ctx.fillStyle = '#fff';
-        ctx.shadowColor = '#4ade80';
-        ctx.shadowBlur = 15;
-        ctx.fillText('+1000 BONUS', 0, 25);
-      } else {
+        ctx.globalAlpha = alpha;
+        
+        // Background strip
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+        ctx.fillRect(0, this.height / 2 - 70, this.width, 140);
+        
+        // Decorative lines
+        ctx.strokeStyle = '#4ade80';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(0, this.height / 2 - 70);
+        ctx.lineTo(this.width, this.height / 2 - 70);
+        ctx.moveTo(0, this.height / 2 + 70);
+        ctx.lineTo(this.width, this.height / 2 + 70);
+        ctx.stroke();
+        
+        // Level Number
         ctx.fillStyle = '#4ade80';
-        ctx.fillText('LEVEL COMPLETE!', 0, 0);
-      }
-      ctx.restore();
-      
-      // Show level score
-      ctx.font = '24px sans-serif';
-      const levelScore = this.score - this.levelStartScore;
-      ctx.fillStyle = '#fff';
-      ctx.shadowBlur = 0; // Reset shadow
-      ctx.fillText(`Level Score: ${levelScore}`, this.width / 2, this.height / 2 + 40);
-      
-      // Show New Record
-      if (this.newRecord) {
-        const pulse = Math.sin(performance.now() / 100) * 0.1 + 1.0;
-        ctx.save();
-        ctx.translate(this.width / 2, this.height / 2 + 80);
-        ctx.scale(pulse, pulse);
-        ctx.fillStyle = '#ffd700';
         ctx.font = 'bold 24px sans-serif';
-        ctx.shadowColor = '#ffd700';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.shadowColor = '#4ade80';
         ctx.shadowBlur = 10;
-        ctx.fillText('🏆 NEW RECORD! 🏆', 0, 0);
-        ctx.restore();
+        ctx.fillText(`LEVEL ${this.currentLevelIndex}`, this.width / 2, this.height / 2 - 25);
+        ctx.shadowBlur = 0;
+        
+        // Level Name
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 56px sans-serif';
+        const levelName = (this.currentLevel && this.currentLevel.name) ? this.currentLevel.name : 'UNKNOWN SECTOR';
+        ctx.fillText(levelName.toUpperCase(), this.width / 2, this.height / 2 + 35);
       }
-
-      // Show total score
-      ctx.font = '20px sans-serif';
-      ctx.fillStyle = '#fff';
-      ctx.fillText(`Total Score: ${this.score}`, this.width / 2, this.height / 2 + 120);
       
-      // Spawn celebration particles
-      if (Math.random() < 0.3) {
-        const px = this.width / 2 + (Math.random() - 0.5) * 200;
-        const py = this.height / 2 + (Math.random() - 0.5) * 100;
-        const pColor = this.perfectClear ? '#ffd700' : '#4ade80';
-        this.spawnParticles(px, py, pColor, 5);
+      // 2. "READY"
+      else if (progress < 0.85) {
+         const subProgress = (progress - 0.65) / 0.2; // 0 to 1
+         let alpha = 1;
+         if (subProgress < 0.2) alpha = subProgress * 5;
+         if (subProgress > 0.8) alpha = (1 - subProgress) * 5;
+         
+         ctx.globalAlpha = alpha;
+         ctx.fillStyle = '#ffd700';
+         ctx.font = '900 72px "Arial Black", sans-serif';
+         ctx.textAlign = 'center';
+         ctx.textBaseline = 'middle';
+         ctx.shadowColor = '#ffd700';
+         ctx.shadowBlur = 20;
+         ctx.fillText('READY?', this.width / 2, this.height / 2);
       }
+      
+      // 3. "GO!"
+      else {
+         const subProgress = (progress - 0.85) / 0.15; // 0 to 1
+         // Scale effect
+         const scale = 1 + subProgress * 1.5; 
+         const alpha = 1 - subProgress; // Fade out
+         
+         ctx.translate(this.width / 2, this.height / 2);
+         ctx.scale(scale, scale);
+         
+         ctx.globalAlpha = alpha;
+         ctx.fillStyle = '#4ade80';
+         ctx.font = '900 100px "Arial Black", sans-serif';
+         ctx.textAlign = 'center';
+         ctx.textBaseline = 'middle';
+         ctx.shadowColor = '#4ade80';
+         ctx.shadowBlur = 30;
+         ctx.fillText('GO!', 0, 0);
+      }
+      
+      ctx.restore();
     }
     
     if (this.gameOver && !this.won) {
@@ -2316,15 +2341,12 @@ export default class Game {
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
     ctx.lineWidth = 1;
     const gridSize = 50;
-    const offset = (time * 10) % gridSize;
-    
-    // Perspective grid effect
     ctx.beginPath();
     for (let x = 0; x <= this.width; x += gridSize) {
       ctx.moveTo(x, 0);
       ctx.lineTo(x, this.height);
     }
-    for (let y = offset - gridSize; y <= this.height; y += gridSize) {
+    for (let y = 0; y <= this.height; y += gridSize) {
       ctx.moveTo(0, y);
       ctx.lineTo(this.width, y);
     }
@@ -2450,10 +2472,10 @@ export default class Game {
     ctx.textBaseline = 'middle';
     
     ctx.fillStyle = !this.twoPlayerMode ? '#fff' : '#cbd5e1';
-    ctx.fillText('1 PLAYER', modeX + modeW/4, modeY + modeH/2);
+    ctx.fillText('1 PLAYER', modeX + sliderW/2, modeY + modeH/2);
     
     ctx.fillStyle = this.twoPlayerMode ? '#fff' : '#cbd5e1';
-    ctx.fillText('2 PLAYERS', modeX + modeW*0.75, modeY + modeH/2);
+    ctx.fillText('2 PLAYERS', modeX + sliderW * 1.5, modeY + modeH/2);
     
     // Instructions
     ctx.fillStyle = '#e2e8f0';
