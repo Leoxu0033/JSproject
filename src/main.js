@@ -311,26 +311,29 @@ window.addEventListener('keyup', (e) => {
 function handleFirstInteraction() {
   if (!game || !game.audio) return;
 
-  game.audio.resume().then(() => {
-    if (game.audio.ctx.state === 'running') {
-      // Only remove listeners if successfully resumed
-      window.removeEventListener('pointerdown', handleFirstInteraction);
-      window.removeEventListener('touchstart', handleFirstInteraction);
-      window.removeEventListener('touchend', handleFirstInteraction);
-      window.removeEventListener('keydown', handleFirstInteraction);
-      window.removeEventListener('click', handleFirstInteraction);
-    }
-  }).catch(err => {
-    console.warn('Audio resume failed:', err);
-  });
+  if (game.audio.ctx.state === 'suspended') {
+    game.audio.resume().then(() => {
+      if (game.audio.ctx.state === 'running') {
+        // Only remove listeners if successfully resumed
+        window.removeEventListener('pointerdown', handleFirstInteraction, true);
+        window.removeEventListener('touchstart', handleFirstInteraction, true);
+        window.removeEventListener('touchend', handleFirstInteraction, true);
+        window.removeEventListener('keydown', handleFirstInteraction, true);
+        window.removeEventListener('click', handleFirstInteraction, true);
+      }
+    }).catch(err => {
+      console.warn('Audio resume failed:', err);
+    });
+  }
 }
 
 // Listen to multiple events to ensure we catch a valid user gesture
-window.addEventListener('pointerdown', handleFirstInteraction);
-window.addEventListener('touchstart', handleFirstInteraction);
-window.addEventListener('touchend', handleFirstInteraction);
-window.addEventListener('keydown', handleFirstInteraction);
-window.addEventListener('click', handleFirstInteraction);
+// Use capture: true to catch events early
+window.addEventListener('pointerdown', handleFirstInteraction, true);
+window.addEventListener('touchstart', handleFirstInteraction, true);
+window.addEventListener('touchend', handleFirstInteraction, true);
+window.addEventListener('keydown', handleFirstInteraction, true);
+window.addEventListener('click', handleFirstInteraction, true);
 
 // Retry button wiring
 const retryBtn = document.getElementById('retry-btn');
