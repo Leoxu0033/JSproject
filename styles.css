@@ -206,10 +206,10 @@ canvas{
   bottom: 20px;
   left: 0;
   width: 100%;
-  padding: 0 40px;
+  padding: 0 20px;
   padding-bottom: env(safe-area-inset-bottom, 20px); /* Handle iPhone home bar */
-  padding-left: max(40px, env(safe-area-inset-left)); /* Handle notch in landscape */
-  padding-right: max(40px, env(safe-area-inset-right)); /* Handle notch in landscape */
+  padding-left: max(20px, env(safe-area-inset-left)); /* Handle notch in landscape */
+  padding-right: max(20px, env(safe-area-inset-right)); /* Handle notch in landscape */
   justify-content: flex-end; /* Align dash button to right */
   align-items: flex-end;
   pointer-events: none;
@@ -265,8 +265,8 @@ canvas{
   display: flex;
   gap: 15px;
   pointer-events: auto; /* Re-enable pointer events for buttons */
-  margin-bottom: 60px; /* Align with joystick center roughly */
-  margin-right: 40px;
+  margin-bottom: 10px; /* Align with joystick center roughly */
+  margin-right: 0;
 }
 
 /* Mobile Tools (Top Right) */
@@ -377,8 +377,8 @@ canvas{
   /* Add keyboard hint to dash button on desktop */
   #btn-dash {
     position: fixed;
-    bottom: 40px;
-    right: 40px;
+    bottom: 30px;
+    right: 30px;
     width: 80px;
     height: 80px;
     border-radius: 50%;
