@@ -2367,6 +2367,26 @@ export default class Game {
       ctx.font = '24px sans-serif';
       ctx.fillStyle = `rgba(255, 255, 255, ${restartPulse})`;
       ctx.fillText('Press R to Restart from Level 1', this.width / 2, restartY);
+
+      // Return to Menu Button
+      const btnW = 240;
+      const btnH = 50;
+      const btnX = this.width / 2 - btnW / 2;
+      const btnY = restartY + 40;
+      
+      ctx.fillStyle = '#4ade80';
+      ctx.shadowColor = '#4ade80';
+      ctx.shadowBlur = 15;
+      ctx.beginPath();
+      ctx.roundRect(btnX, btnY, btnW, btnH, 10);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      
+      ctx.fillStyle = '#0f172a';
+      ctx.font = 'bold 20px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('RETURN TO MENU', this.width / 2, btnY + btnH / 2);
       
       // Celebration particles (more frequent)
       if (Math.random() < 0.6) {
@@ -3090,6 +3110,28 @@ export default class Game {
   handleGameClick(x, y) {
     if (this.showMainMenu || this.showLevelSelect) return;
 
+    // All Levels Completed Screen Button
+    if (this.gameOver && this.won && this.allLevelsCompleted()) {
+      const itemsPerCol = Math.ceil(levels.length / 2);
+      const breakdownY = this.height / 2 + 20;
+      const totalY = breakdownY + 50 + itemsPerCol * 32 + 30;
+      const restartY = totalY + 60;
+      const btnY = restartY + 40;
+      
+      const btnW = 240;
+      const btnH = 50;
+      const btnX = this.width / 2 - btnW / 2;
+      
+      if (x >= btnX && x <= btnX + btnW && y >= btnY && y <= btnY + btnH) {
+        this.showMainMenu = true;
+        this.gameOver = false;
+        this.won = false;
+        this.paused = false;
+        if (this.audio) this.audio.playSfx('select');
+        return;
+      }
+    }
+
     // Game Over Screen Buttons
     if (this.gameOver && !this.won) {
       const btnW = 200;
@@ -3124,6 +3166,22 @@ export default class Game {
 
   handleGameMouseMove(x, y) {
     if (this.showMainMenu || this.showLevelSelect) return false;
+
+    if (this.gameOver && this.won && this.allLevelsCompleted()) {
+      const itemsPerCol = Math.ceil(levels.length / 2);
+      const breakdownY = this.height / 2 + 20;
+      const totalY = breakdownY + 50 + itemsPerCol * 32 + 30;
+      const restartY = totalY + 60;
+      const btnY = restartY + 40;
+      
+      const btnW = 240;
+      const btnH = 50;
+      const btnX = this.width / 2 - btnW / 2;
+      
+      if (x >= btnX && x <= btnX + btnW && y >= btnY && y <= btnY + btnH) {
+        return true;
+      }
+    }
 
     if (this.gameOver && !this.won) {
       const btnW = 200;
