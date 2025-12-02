@@ -309,19 +309,28 @@ window.addEventListener('keyup', (e) => {
 
 // Unlock audio on first user gesture (browsers often require this)
 function handleFirstInteraction() {
-  if (game && game.audio) {
-    game.audio.resume().then(() => {
-      // optionally start music only after gesture
-      // game.audio.playMusic();
-    });
-  }
-  window.removeEventListener('pointerdown', handleFirstInteraction);
-  window.removeEventListener('touchstart', handleFirstInteraction);
-  window.removeEventListener('keydown', handleFirstInteraction);
+  if (!game || !game.audio) return;
+
+  game.audio.resume().then(() => {
+    if (game.audio.ctx.state === 'running') {
+      // Only remove listeners if successfully resumed
+      window.removeEventListener('pointerdown', handleFirstInteraction);
+      window.removeEventListener('touchstart', handleFirstInteraction);
+      window.removeEventListener('touchend', handleFirstInteraction);
+      window.removeEventListener('keydown', handleFirstInteraction);
+      window.removeEventListener('click', handleFirstInteraction);
+    }
+  }).catch(err => {
+    console.warn('Audio resume failed:', err);
+  });
 }
+
+// Listen to multiple events to ensure we catch a valid user gesture
 window.addEventListener('pointerdown', handleFirstInteraction);
 window.addEventListener('touchstart', handleFirstInteraction);
+window.addEventListener('touchend', handleFirstInteraction);
 window.addEventListener('keydown', handleFirstInteraction);
+window.addEventListener('click', handleFirstInteraction);
 
 // Retry button wiring
 const retryBtn = document.getElementById('retry-btn');

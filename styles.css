@@ -266,7 +266,7 @@ canvas{
   gap: 15px;
   pointer-events: auto; /* Re-enable pointer events for buttons */
   margin-bottom: 60px; /* Align with joystick center roughly */
-  margin-right: 20px;
+  margin-right: 40px;
 }
 
 /* Mobile Tools (Top Right) */
@@ -376,12 +376,35 @@ canvas{
 
   /* Add keyboard hint to dash button on desktop */
   #btn-dash {
-    position: relative;
+    position: fixed;
+    bottom: 40px;
+    right: 40px;
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: rgba(255, 209, 102, 0.15);
+    border: 2px solid rgba(255, 209, 102, 0.3);
+    display: flex;
     flex-direction: column;
+    align-items: center;
+    justify-content: center;
     font-size: 32px;
     padding-top: 5px;
     padding-left: 0;
     gap: 2px;
+    backdrop-filter: blur(4px);
+    transition: all 0.2s ease;
+  }
+
+  #btn-dash:hover {
+    background: rgba(255, 209, 102, 0.25);
+    border-color: rgba(255, 209, 102, 0.5);
+    transform: scale(1.05);
+  }
+
+  #btn-dash:active, #btn-dash.active {
+    transform: scale(0.95);
+    background: rgba(255, 209, 102, 0.4);
   }
 
   #btn-dash::after {

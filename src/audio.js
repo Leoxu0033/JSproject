@@ -120,6 +120,17 @@ export class AudioManager {
 
   // resume audio context after user gesture
   resume() {
+    // Create and play a silent buffer to unlock iOS audio
+    try {
+      const buffer = this.ctx.createBuffer(1, 1, 22050);
+      const source = this.ctx.createBufferSource();
+      source.buffer = buffer;
+      source.connect(this.ctx.destination);
+      source.start(0);
+    } catch (e) {
+      // ignore
+    }
+
     if (this.ctx.state === 'suspended') {
       return this.ctx.resume();
     }
