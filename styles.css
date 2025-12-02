@@ -366,3 +366,30 @@ canvas{
     border-color: rgba(255, 209, 102, 0.8);
   }
 }
+
+/* Desktop specific adjustments */
+@media (min-width: 901px) and (hover: hover) {
+  /* Hide joystick area on desktop to prevent blocking clicks */
+  #joystick-area {
+    display: none !important;
+  }
+
+  /* Add keyboard hint to dash button on desktop */
+  #btn-dash {
+    position: relative;
+    flex-direction: column;
+    font-size: 32px;
+    padding-top: 5px;
+    padding-left: 0;
+    gap: 2px;
+  }
+
+  #btn-dash::after {
+    content: 'SHIFT';
+    font-size: 10px;
+    font-weight: 800;
+    color: rgba(255, 209, 102, 0.8);
+    letter-spacing: 1px;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+  }
+}

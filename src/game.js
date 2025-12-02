@@ -2082,6 +2082,79 @@ export default class Game {
       
       ctx.restore();
     }
+
+    // Win animation
+    if (this.won && this.winAnimationTimer > 0) {
+      const progress = 1 - (this.winAnimationTimer / this.winAnimationDuration);
+      const alpha = Math.min(1, progress * 1.5);
+      
+      // Pulsing background
+      ctx.fillStyle = `rgba(0, 255, 100, ${alpha * 0.3})`;
+      ctx.fillRect(0, 0, this.width, this.height);
+      
+      // Win text with animation
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 48px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      
+      const scale = 1 + Math.sin(progress * Math.PI * 4) * 0.1;
+      ctx.save();
+      ctx.translate(this.width / 2, this.height / 2 - 40);
+      ctx.scale(scale, scale);
+      
+      if (this.perfectClear) {
+        // Gold text for perfect clear
+        ctx.fillStyle = '#ffd700';
+        ctx.shadowColor = '#ffd700';
+        ctx.shadowBlur = 20;
+        ctx.fillText('PERFECT CLEAR!', 0, -30);
+        
+        ctx.font = 'bold 36px sans-serif';
+        ctx.fillStyle = '#fff';
+        ctx.shadowColor = '#4ade80';
+        ctx.shadowBlur = 15;
+        ctx.fillText('+1000 BONUS', 0, 25);
+      } else {
+        ctx.fillStyle = '#4ade80';
+        ctx.fillText('LEVEL COMPLETE!', 0, 0);
+      }
+      ctx.restore();
+      
+      // Show level score
+      ctx.font = '24px sans-serif';
+      const levelScore = this.score - this.levelStartScore;
+      ctx.fillStyle = '#fff';
+      ctx.shadowBlur = 0; // Reset shadow
+      ctx.fillText(`Level Score: ${levelScore}`, this.width / 2, this.height / 2 + 40);
+      
+      // Show New Record
+      if (this.newRecord) {
+        const pulse = Math.sin(performance.now() / 100) * 0.1 + 1.0;
+        ctx.save();
+        ctx.translate(this.width / 2, this.height / 2 + 80);
+        ctx.scale(pulse, pulse);
+        ctx.fillStyle = '#ffd700';
+        ctx.font = 'bold 24px sans-serif';
+        ctx.shadowColor = '#ffd700';
+        ctx.shadowBlur = 10;
+        ctx.fillText('🏆 NEW RECORD! 🏆', 0, 0);
+        ctx.restore();
+      }
+
+      // Show total score
+      ctx.font = '20px sans-serif';
+      ctx.fillStyle = '#fff';
+      ctx.fillText(`Total Score: ${this.score}`, this.width / 2, this.height / 2 + 120);
+      
+      // Spawn celebration particles
+      if (Math.random() < 0.3) {
+        const px = this.width / 2 + (Math.random() - 0.5) * 200;
+        const py = this.height / 2 + (Math.random() - 0.5) * 100;
+        const pColor = this.perfectClear ? '#ffd700' : '#4ade80';
+        this.spawnParticles(px, py, pColor, 5);
+      }
+    }
     
     if (this.gameOver && !this.won) {
       // Dark Overlay
@@ -3140,11 +3213,9 @@ export default class Game {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     
-    // 1P Text
     ctx.fillStyle = !this.twoPlayerMode ? '#1e293b' : '#cbd5e1';
     ctx.fillText('1 PLAYER', modeX + sliderW/2, modeY + modeH/2);
     
-    // 2P Text
     ctx.fillStyle = this.twoPlayerMode ? '#1e293b' : '#cbd5e1';
     ctx.fillText('2 PLAYERS', modeX + sliderW * 1.5, modeY + modeH/2);
     
