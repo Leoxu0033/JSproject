@@ -414,7 +414,8 @@ export default class Game {
     
     // Spawn enemies from level
     this.enemies = this.currentLevel.spawnEnemies((type, x, yOffset) => {
-      const baseY = this.height - this.currentLevel.groundY - 30;
+      // Spawn slightly higher to avoid immediate collision with ground
+      const baseY = this.height - this.currentLevel.groundY - 40;
       const y = Math.min(baseY, baseY + (yOffset || 0));
       const e = new Enemy(x, y, type);
       if (e.pos.y > baseY) e.pos.y = baseY;
@@ -426,9 +427,12 @@ export default class Game {
     const extra = 1 + Math.floor(Math.random() * 3);
     const types = ['walker', 'chaser', 'jumper', 'roamer', 'floater'];
     for (let i = 0; i < extra; i++) {
-      const tx = 120 + Math.random() * (this.width - 240);
+      // Spawn further away from player (player is at ~100)
+      // Start from 400 to ensure safety zone
+      const tx = 400 + Math.random() * (this.width - 450);
       const ttype = types[Math.floor(Math.random() * types.length)];
-      const ty = this.height - this.currentLevel.groundY - 30 + (Math.random() * 20 - 10);
+      // Ensure they spawn in the air (at least 40px above ground)
+      const ty = this.height - this.currentLevel.groundY - 40 - Math.random() * 40;
       const e2 = new Enemy(tx, ty, ttype);
       this.entities.push(e2);
       this.enemies.push(e2);
@@ -1189,6 +1193,19 @@ export default class Game {
           baseY = Math.random() * (maxY - minY) + minY;
         }
         
+        // Safety check: if too close to any player, skip this batch
+        let safe = true;
+        for (const p of this.players) {
+            if (!p.alive) continue;
+            const dx = baseX - p.pos.x;
+            const dy = baseY - p.pos.y;
+            if (dx*dx + dy*dy < 200*200) {
+                safe = false;
+                break;
+            }
+        }
+        if (!safe) continue;
+        
         // Create new batch
         const batchSize = minBatchSize + Math.floor(Math.random() * (maxBatchSize - minBatchSize + 1));
         this._tadpoleBatches.push({
@@ -1276,7 +1293,8 @@ export default class Game {
         y = wallThickness + spawnMargin;
       } else if (edge === 1) { // bottom (ground)
         x = Math.random() * (this.width - 100) + 50;
-        y = this.height - groundY - 40;
+        // Spawn higher to avoid ground collision
+        y = this.height - groundY - 60;
       } else if (edge === 2) { // left
         x = wallThickness + spawnMargin;
         y = Math.random() * (this.height - groundY - 100) + 50;
@@ -1285,6 +1303,19 @@ export default class Game {
         y = Math.random() * (this.height - groundY - 100) + 50;
       }
       
+      // Safety check: if too close to any player, skip
+      let safe = true;
+      for (const p of this.players) {
+          if (!p.alive) continue;
+          const dx = x - p.pos.x;
+          const dy = y - p.pos.y;
+          if (dx*dx + dy*dy < 200*200) {
+              safe = false;
+              break;
+          }
+      }
+      if (!safe) return; // Skip this spawn cycle
+
       const enemy = new Enemy(x, y, type);
       this.entities.push(enemy);
       this.enemies.push(enemy);

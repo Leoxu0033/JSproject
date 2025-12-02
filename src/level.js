@@ -75,7 +75,7 @@ export const levels = [
       { type: 'jumper', x: 420, yOffset: -12 },
       { type: 'jumper', x: 520, yOffset: -12 },
       { type: 'chaser', x: 700, yOffset: 0 },
-      { type: 'walker', x: 820, yOffset: 0 }
+      { type: 'walker', x: 220, yOffset: 0 }
     ],
     // Safe haven: area where player can hide from enemies (now dynamically spawned)
   },
@@ -96,7 +96,7 @@ export const levels = [
       { type: 'chaser', x: 250, yOffset: 0 },
       { type: 'jumper', x: 450, yOffset: -10 },
       { type: 'chaser', x: 650, yOffset: 0 },
-      { type: 'walker', x: 800, yOffset: 0 }
+      { type: 'walker', x: 300, yOffset: 0 }
     ]
   },
   {
@@ -112,11 +112,11 @@ export const levels = [
       { x: 800, height: 12, w: 40, type: 'platform', y: 180 }
     ],
     enemies: [
-      { type: 'jumper', x: 200, yOffset: -15 },
-      { type: 'chaser', x: 350, yOffset: -10 },
+      { type: 'jumper', x: 300, yOffset: -15 },
+      { type: 'chaser', x: 400, yOffset: -10 },
       { type: 'jumper', x: 530, yOffset: -15 },
       { type: 'chaser', x: 680, yOffset: -10 },
-      { type: 'walker', x: 850, yOffset: 0 }
+      { type: 'walker', x: 350, yOffset: 0 }
     ]
   },
   {
@@ -132,7 +132,7 @@ export const levels = [
       { x: 750, height: 14, w: 80, type: 'platform', y: 120 }
     ],
     enemies: [
-      { type: 'chaser', x: 200, yOffset: 0 },
+      { type: 'chaser', x: 300, yOffset: 0 },
       { type: 'roamer', x: 500, yOffset: 0 },
       { type: 'chaser', x: 800, yOffset: 0 }
     ]
@@ -150,9 +150,9 @@ export const levels = [
       { x: 420, height: 14, w: 180, type: 'platform', y: 250 }
     ],
     enemies: [
-      { type: 'jumper', x: 250, yOffset: -10 },
+      { type: 'jumper', x: 300, yOffset: -10 },
       { type: 'chaser', x: 470, yOffset: -10 },
-      { type: 'jumper', x: 250, yOffset: -60 },
+      { type: 'jumper', x: 300, yOffset: -60 },
       { type: 'chaser', x: 470, yOffset: -60 }
     ]
   },
@@ -171,9 +171,9 @@ export const levels = [
       { x: 550, height: 160, w: 14, type: 'wall', y: 100 }
     ],
     enemies: [
-      { type: 'chaser', x: 150, yOffset: -10 },
-      { type: 'jumper', x: 330, yOffset: -10 },
-      { type: 'chaser', x: 510, yOffset: -10 },
+      { type: 'chaser', x: 350, yOffset: -10 },
+      { type: 'jumper', x: 450, yOffset: -10 },
+      { type: 'chaser', x: 550, yOffset: -10 },
       { type: 'jumper', x: 690, yOffset: -10 },
       { type: 'roamer', x: 850, yOffset: 0 }
     ]
@@ -194,9 +194,9 @@ export const levels = [
       { x: 800, height: 180, w: 14, type: 'wall', y: 80 }
     ],
     enemies: [
-      { type: 'chaser', x: 200, yOffset: 0 },
-      { type: 'jumper', x: 350, yOffset: -10 },
-      { type: 'chaser', x: 500, yOffset: 0 },
+      { type: 'chaser', x: 300, yOffset: 0 },
+      { type: 'jumper', x: 400, yOffset: -10 },
+      { type: 'chaser', x: 550, yOffset: 0 },
       { type: 'jumper', x: 650, yOffset: -10 },
       { type: 'chaser', x: 850, yOffset: 0 },
       { type: 'roamer', x: 400, yOffset: 0 }
