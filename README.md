@@ -4,6 +4,25 @@
 
 A minimalist survival platformer game built with vanilla JavaScript, HTML5 Canvas, and ES6 modules. Survive waves of enemies across 9 challenging levels!
 
+### 🌟 Developer's Note: A Crafted Experience
+
+This project is more than just a simple platformer; It came with significant challenges:
+
+The Physics Engine Struggle: Achieving a "silky-smooth" control feel wasn't easy. We spent days tweaking gravity constants and friction coefficients. Implementing "Coyote Time" and wall-sliding mechanics required rewriting the collision detection logic multiple times to eliminate edge-case bugs where players would get stuck in walls.
+
+Evolving Enemy AI: Moving beyond simple patrolling enemies meant diving deep into state machines. Balancing the Boss fight was particularly grueling—ensuring the charge attacks felt fair but challenging involved dozens of iterations and playtests to get the timing just right.
+
+The "Safe Haven" Challenge: The safe zone mechanic introduced a host of physics conflicts. Disabling gravity while maintaining momentum without breaking the game loop caused numerous "floating player" glitches that took weeks to stabilize. It is now a core strategic element, but it was the hardest feature to implement.
+
+It is a labor of love. **Every jump mechanic, every enemy AI decision, nine meticulously designed levels, carefully selected background music, scoring system, and the unique "Safe Haven" mechanic** have been rigorously tuned and polished:
+
+- **Ultimate Physics Feel**: To achieve a silky-smooth control experience, we hand-coded a complete physics engine, including "Coyote Time", wall sliding, multi-jumps, and precise AABB collision detection, ensuring every player input gets the most responsive feedback.
+- **Intelligent Enemy AI**: Say goodbye to mindless patrolling mobs! Enemies here possess independent state machines, dynamically switching between patrolling, chasing, and predictive interception based on player position. The final Boss fight features multiple phases like tracking, charge attacks, and bullet hell patterns, offering a true challenge.
+- **Innovative "Safe Haven" Mechanic**: The dynamically generated safe zones are not just simple invincibility spots. They completely alter physics rules (zero-gravity hovering) and combine with screen-clearing explosion tactics, making survival more than just running away.
+- **Detail-Oriented Visual Feedback**: From screen shakes and particle bursts to dynamic backgrounds, every interaction features delicate visual feedback, striving to present commercial indie game quality on the Canvas.
+
+
+
 ## 🎮 Game Overview
 
 **Mini Flat Heroes** is a fast-paced survival platformer where you must survive for 20 seconds in each level while avoiding or defeating enemies. The game features progressive difficulty, dynamic safe havens, and a comprehensive scoring system.
@@ -19,7 +38,7 @@ A minimalist survival platformer game built with vanilla JavaScript, HTML5 Canva
 - **Multiple Enemy Types** - Walkers, jumpers, floaters, roamers, and aggressive tadpoles.
 - **Scoring System** - Track your best score for each level and total score across all levels.
 - **Level Selection** - Beautiful glassmorphism UI to choose any unlocked level.
-- **Rich Audio** - Procedural music and sound effects using Web Audio API.
+- **Rich Audio** - Procedural music and sound effects using Web Audio API. Background Music: 海阔天空
 - **Visual Polish** - Particle effects, screen shake, dynamic backgrounds, and smooth animations.
 
 ## 🎯 Gameplay
@@ -112,7 +131,7 @@ Project/
 │   ├── main.js         # Game initialization and input handling
 │   ├── game.js         # Main game engine and loop
 │   ├── player.js       # Player logic, movement, and rendering
-│   ├── enemy2.js       # Enemy AI and behavior
+│   ├── enemy.js       # Enemy AI and behavior
 │   ├── level.js        # Level definitions (9 levels)
 │   ├── audio.js        # Audio manager (Web Audio API)
 │   ├── particles.js    # Particle effects system
