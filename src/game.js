@@ -1,7 +1,7 @@
 import { clamp, rectsIntersect } from './utils.js';
 import { input } from './input.js';
 import { Player } from './player.js';
-import { Enemy } from './enemy2.js';
+import { Enemy } from './enemy.js';
 import Level, { levels } from './level.js';
 import { AudioManager } from './audio.js';
 import { spawnBurst as createParticles } from './particles.js';
